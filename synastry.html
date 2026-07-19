@@ -780,8 +780,15 @@ async function applyBirth() {
   }
 }
 
+// Julian Day at 00:00 UTC of today — the search window always starts from the
+// current date. Computed from the Unix epoch (not jdn(), which is off by one in
+// Jan/Feb) so it stays correct whenever the page is loaded.
+function currentBaseJD() {
+  return Math.floor(Date.now() / 86400000) + 2440587.5;
+}
+
 function findBest() {
-  const BASE=jdn(2026,4,23);
+  const BASE=currentBaseJD();
   let best={total:-Infinity};
   for (let d=0;d<60;d++) {
     for (let h=17;h<=21;h++) {
@@ -1213,7 +1220,7 @@ function startAllTonesChart() {
     return res.total;
   }
 
-  var BASE2 = jdn(2026,4,23,0,0);
+  var BASE2 = currentBaseJD();
   var labels = [];
   for (var d=0; d<60; d++) {
     var jd0 = BASE2+d;
@@ -1408,7 +1415,7 @@ function startCalChart() {
   var C_NATAL='#5c6bc0',C_SKY='#8d6e63',C_PERS='#c9a84c';
   var axC='rgba(201,168,76,0.25)',grC='rgba(201,168,76,0.08)',lbC='rgba(245,240,232,0.45)';
 
-  var BASE2=jdn(2026,4,23,0,0);
+  var BASE2=currentBaseJD();
   var cData={labels:[],datasets:[
     {label:'Natal synastry baseline',data:[],backgroundColor:C_NATAL,borderWidth:0,stack:'s'},
     {label:'Sky conditions & dignity',data:[],backgroundColor:C_SKY,borderWidth:0,stack:'s'},
@@ -1519,7 +1526,7 @@ function startPolarityChart() {
   if (!canvas) return;
 
   var DAYS = 60;
-  var BASE2 = jdn(2026,4,23,0,0);
+  var BASE2 = currentBaseJD();
 
   function polScore(jd, natalChart, otherNatal) {
     var tr = computePlanets(jd);
