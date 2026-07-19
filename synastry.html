@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synastry Reading</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&display=swap');
+
+:root {
+--gold: #c9a84c; --gold-light: #e8d49a;
+--deep: #0a0812; --vellum: #f5f0e8;
+--crimson: #8b2635; --indigo: #2d2b6b;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--deep); color:var(--vellum); font-family:'Cormorant Garamond',serif; min-height:100vh; overflow-x:hidden; }
+
+.starfield { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0;
+background:radial-gradient(ellipse at 20% 30%,#1a1040 0%,transparent 60%),radial-gradient(ellipse at 80% 70%,#0d1a2e 0%,transparent 60%),var(--deep); }
+.star { position:absolute; background:white; border-radius:50%; animation:twinkle var(--d,3s) ease-in-out infinite alternate; }
+@keyframes twinkle { from{opacity:0.2} to{opacity:0.9} }
+
+.container { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:3rem 2rem; }
+
+header { text-align:center; margin-bottom:2rem; border-bottom:1px solid rgba(201,168,76,0.3); padding-bottom:2rem; }
+.eyebrow { font-family:'Cinzel',serif; font-size:0.65rem; letter-spacing:0.3em; color:var(--gold); text-transform:uppercase; margin-bottom:1rem; }
+h1 { font-family:'Cinzel',serif; font-size:clamp(1.6rem,4vw,2.4rem); font-weight:600; color:var(--gold-light); line-height:1.2; margin-bottom:0.5rem; }
+.subtitle { font-style:italic; font-size:1.05rem; color:rgba(245,240,232,0.6); }
+
+/* ── BIRTH PANEL ── */
+.birth-panel {
+border:1px solid rgba(201,168,76,0.3);
+margin-bottom:2.5rem;
+background:rgba(0,0,0,0.2);
+}
+.birth-panel-header {
+display:flex;justify-content:space-between;align-items:center;
+padding:1rem 1.8rem;cursor:pointer;user-select:none;
+}
+.birth-panel-header:hover{background:rgba(201,168,76,0.04);}
+.birth-panel-title {
+font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.25em;
+color:var(--gold);text-transform:uppercase;
+}
+.birth-panel-toggle{font-size:0.7rem;color:rgba(245,240,232,0.4);}
+.birth-panel-body{padding:1.2rem 1.8rem 1.6rem;border-top:1px solid rgba(201,168,76,0.15);}
+.birth-person{margin-bottom:1.4rem;}
+.birth-person:last-child{margin-bottom:0;}
+.birth-person-label{
+font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.2em;
+color:var(--gold);text-transform:uppercase;margin-bottom:0.7rem;
+}
+.birth-row{display:flex;flex-wrap:wrap;gap:0.5rem 0.8rem;align-items:center;}
+.birth-field{display:flex;flex-direction:column;gap:0.2rem;}
+.birth-field label{font-size:0.7rem;color:rgba(245,240,232,0.4);font-family:'Cinzel',serif;letter-spacing:0.1em;}
+.birth-input {
+background:rgba(255,255,255,0.05);
+border:1px solid rgba(201,168,76,0.25);
+color:var(--vellum);
+font-family:'Cormorant Garamond',serif;
+font-size:0.95rem;
+padding:0.3rem 0.5rem;
+border-radius:2px;
+width:100%;
+}
+.birth-input:focus{outline:none;border-color:rgba(201,168,76,0.6);background:rgba(201,168,76,0.06);}
+.birth-input-sm{width:4rem;}
+.birth-input-md{width:5.5rem;}
+.birth-input-lg{width:9rem;}
+.birth-submit{
+font-family:'Cinzel',serif;font-size:0.62rem;letter-spacing:0.15em;
+text-transform:uppercase;padding:0.5rem 1.2rem;
+background:rgba(201,168,76,0.15);border:1px solid var(--gold);
+color:var(--gold-light);cursor:pointer;margin-top:1rem;
+transition:background 0.2s;
+}
+.birth-submit:hover{background:rgba(201,168,76,0.28);}
+.birth-gender-btn {
+font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.12em;
+padding:0.3rem 0.7rem;cursor:pointer;border:none;background:transparent;
+color:rgba(245,240,232,0.45);transition:all 0.2s;
+}
+.birth-gender-btn:hover{color:rgba(245,240,232,0.8);background:rgba(201,168,76,0.08);}
+.birth-gender-btn.active{background:rgba(201,168,76,0.2);color:var(--gold-light);}
+.birth-note{font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.35);margin-top:0.5rem;}
+.tone-panel {
+border:1px solid rgba(201,168,76,0.3);
+padding:1.4rem 1.8rem;
+margin-bottom:2.5rem;
+background:rgba(0,0,0,0.25);
+}
+.tone-panel-title {
+font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.25em;
+color:var(--gold); text-transform:uppercase; margin-bottom:1.2rem;
+}
+.tone-row {
+display:flex; align-items:center; justify-content:space-between;
+margin-bottom:0.9rem; flex-wrap:wrap; gap:0.5rem;
+}
+.tone-row:last-child { margin-bottom:0; }
+.tone-question { font-size:0.9rem; font-style:italic; color:rgba(245,240,232,0.65); flex:1; min-width:160px; }
+.tone-toggle {
+display:flex; border:1px solid rgba(201,168,76,0.3); border-radius:2px; overflow:hidden;
+}
+.tone-btn {
+font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.12em;
+padding:0.35rem 0.9rem; cursor:pointer; border:none; background:transparent;
+color:rgba(245,240,232,0.45); transition:all 0.2s; white-space:nowrap;
+}
+.tone-btn:hover { color:rgba(245,240,232,0.8); background:rgba(201,168,76,0.08); }
+.tone-btn.active { background:rgba(201,168,76,0.2); color:var(--gold-light); }
+.tone-sep { width:1px; background:rgba(201,168,76,0.3); }
+
+/* ── MOMENT BOX ── */
+.moment-box { background:linear-gradient(135deg,rgba(45,43,107,0.4),rgba(139,38,53,0.2)); border:1px solid var(--gold); padding:1.8rem 2rem; margin-bottom:2.5rem; position:relative; overflow:hidden; }
+.moment-box::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+.moment-label { font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.25em; color:var(--gold); text-transform:uppercase; margin-bottom:0.5rem; }
+.moment-date { font-size:1.5rem; font-weight:300; color:var(--gold-light); letter-spacing:0.05em; }
+.moment-sub { font-style:italic; font-size:0.95rem; color:rgba(245,240,232,0.55); margin-top:0.3rem; }
+.quality-bar { display:flex; gap:0.5rem; align-items:center; margin-top:1rem; flex-wrap:wrap; }
+.quality-tag { font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.15em; border:1px solid; padding:0.2rem 0.6rem; }
+.tag-fire { border-color:#c0392b; color:#e57373; }
+.tag-water { border-color:#2980b9; color:#64b5f6; }
+.tag-earth { border-color:#8e6b3e; color:#bcaaa4; }
+
+/* ── SCORE PANEL ── */
+.score-panel { background:rgba(0,0,0,0.3); border:1px solid rgba(201,168,76,0.25); margin-bottom:2.5rem; }
+.score-header { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.5rem; border-bottom:1px solid rgba(201,168,76,0.15); cursor:pointer; user-select:none; }
+.score-header:hover { background:rgba(201,168,76,0.05); }
+.score-title { font-family:'Cinzel',serif; font-size:0.7rem; letter-spacing:0.25em; color:var(--gold); text-transform:uppercase; }
+.score-total { font-family:'Cinzel',serif; font-size:1.3rem; color:var(--gold-light); }
+.score-toggle { font-size:0.7rem; color:rgba(245,240,232,0.4); margin-left:1rem; }
+.score-body { padding:0 1.5rem 1.5rem; }
+.gauge-wrap { padding:1.2rem 0 1rem; }
+.gauge-track { height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden; margin-bottom:0.4rem; }
+.gauge-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#2d2b6b,#c9a84c,#8b2635); transition:width 0.5s ease; }
+.gauge-labels { display:flex; justify-content:space-between; font-size:0.72rem; color:rgba(245,240,232,0.35); font-family:'Cinzel',serif; }
+.score-categories { margin-top:1rem; }
+.score-cat { margin-bottom:1.2rem; }
+.cat-label { font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.2em; color:var(--gold); text-transform:uppercase; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; }
+.cat-pts { font-size:0.9rem; color:var(--gold-light); }
+.score-item { display:grid; grid-template-columns:1fr 80px auto; gap:0.3rem 0.8rem; align-items:center; padding:0.3rem 0; border-bottom:1px solid rgba(245,240,232,0.05); font-size:0.88rem; }
+.si-label { color:rgba(245,240,232,0.75); }
+.si-rationale { font-style:italic; font-size:0.78rem; color:rgba(245,240,232,0.38); grid-column:1; padding-bottom:0.3rem; }
+.si-pts { font-family:'Cinzel',serif; font-size:0.85rem; text-align:right; }
+.si-pts.pos { color:#81c784; } .si-pts.neg { color:#ef9a9a; } .si-pts.zero { color:rgba(245,240,232,0.25); }
+.si-bar-track { height:3px; background:rgba(255,255,255,0.07); border-radius:2px; }
+.si-bar-fill { height:100%; border-radius:2px; }
+
+/* ── SECTIONS ── */
+.section { margin-bottom:2.5rem; }
+.section-title { font-family:'Cinzel',serif; font-size:0.7rem; letter-spacing:0.25em; color:var(--gold); text-transform:uppercase; border-bottom:1px solid rgba(201,168,76,0.2); padding-bottom:0.5rem; margin-bottom:1.2rem; }
+.aspect-row { display:grid; grid-template-columns:1fr auto 1fr auto; gap:0.4rem 1rem; align-items:center; padding:0.7rem 0; border-bottom:1px solid rgba(245,240,232,0.06); }
+.planet-cell { font-size:1.05rem; }
+.planet-name { color:var(--gold-light); font-weight:600; }
+.planet-pos { font-style:italic; font-size:0.85rem; color:rgba(245,240,232,0.5); }
+.aspect-glyph { font-size:1.1rem; text-align:center; min-width:2rem; }
+.orb-badge { font-family:'Cinzel',serif; font-size:0.65rem; background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.3); padding:0.15rem 0.4rem; border-radius:2px; color:var(--gold); }
+.house-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.house-card { background:rgba(255,255,255,0.03); border:1px solid rgba(201,168,76,0.15); padding:1rem 1.2rem; border-radius:2px; }
+.house-num { font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.2em; color:var(--gold); margin-bottom:0.3rem; }
+.house-desc { font-size:0.95rem; line-height:1.6; }
+.natal-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem 2rem; }
+.natal-item { display:flex; justify-content:space-between; align-items:baseline; padding:0.35rem 0; border-bottom:1px solid rgba(245,240,232,0.06); font-size:0.95rem; }
+.natal-planet { color:var(--gold-light); } .natal-sign { font-style:italic; color:rgba(245,240,232,0.6); }
+.verdict { background:linear-gradient(135deg,rgba(139,38,53,0.25),rgba(45,43,107,0.35)); border:1px solid var(--gold); padding:2rem; text-align:center; position:relative; overflow:hidden; }
+.verdict::after { content:'✦'; position:absolute; font-size:6rem; opacity:0.04; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--gold); }
+.verdict-title { font-family:'Cinzel',serif; font-size:1.1rem; letter-spacing:0.1em; color:var(--gold); margin-bottom:0.8rem; }
+.verdict-text { font-style:italic; font-size:1.15rem; line-height:1.7; color:var(--gold-light); }
+.divider { text-align:center; color:var(--gold); opacity:0.4; font-size:0.8rem; letter-spacing:0.5em; margin:2rem 0; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.section,.score-panel,.moment-box,.tone-panel { animation:fadeIn 0.5s ease both; }
+</style>
+
+</head>
+<body>
+<div class="starfield" id="starfield"></div>
+<div class="container" id="app">
+  <div style="text-align:center;padding:4rem;font-style:italic;color:rgba(245,240,232,0.4)">Computing celestial positions…</div>
+</div>
+<div class="container" id="charts" style="padding-top:0"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ASTRONOMY ENGINE
+// ═══════════════════════════════════════════════════════════════
+const DEG=Math.PI/180, RAD=180/Math.PI;
+const SIGNS=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+function mod360(x){return((x%360)+360)%360;}
+function toRad(d){return d*DEG;}
+function toDeg(r){return r*RAD;}
+function jdn(year,month,day,hour=0,min=0){const D=day+(hour+min/60)/24,A=Math.floor(year/100),B=2-A+Math.floor(A/4);return Math.floor(365.25*(year+4716))+Math.floor(30.6001*(month+1))+D+B-1524.5;}
+function julianCenturies(jd){return(jd-2451545)/36525;}
+function trueAnomaly(M_deg,e){const M=toRad(M_deg);let E=M;for(let i=0;i<12;i++)E=M+e*Math.sin(E);return mod360(toDeg(2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2))));}
+function sunLongitude(T){const L0=mod360(280.46646+36000.76983*T),M=mod360(357.52911+35999.05029*T),mr=toRad(M),C=(1.914602-0.004817*T)*Math.sin(mr)+(0.019993-0.000101*T)*Math.sin(2*mr),om=mod360(125.04-1934.136*T);return mod360(L0+C-0.00569-0.00478*Math.sin(toRad(om)));}
+function moonLongitude(T){const T2=T*T,T3=T2*T,T4=T3*T,D=mod360(297.8502+445267.1115*T-0.00163*T2+T3/545868-T4/113065000),M=mod360(357.5291+35999.0503*T-0.0001559*T2),Mp=mod360(134.9634+477198.8676*T+0.008997*T2+T3/69699-T4/14712000),F=mod360(93.2721+483202.0175*T-0.0034029*T2),L=mod360(218.3165+481267.8813*T),Dr=toRad(D),Mr=toRad(M),Mpr=toRad(Mp),Fr=toRad(F);let lon=L;const terms=[[6.288774,Mpr],[1.274027,2*Dr-Mpr],[0.658314,2*Dr],[0.213618,2*Mpr],[-0.185116,Mr],[-0.114332,2*Fr],[0.058793,2*Dr-2*Mpr],[0.057066,2*Dr-Mr-Mpr],[0.053322,2*Dr+Mpr],[0.045758,2*Dr-Mr],[-0.040923,Mr-Mpr],[-0.034720,Dr],[-0.030383,Mr+Mpr],[0.015327,2*Dr-2*Fr],[-0.012528,2*Fr+Mpr],[-0.010980,2*Fr-Mpr],[0.010675,4*Dr-Mpr],[0.010034,3*Mpr],[0.008548,4*Dr-2*Mpr],[-0.007888,2*Dr+Mr-Mpr],[-0.006766,2*Dr+Mr],[-0.005163,Dr-Mpr],[0.004987,Dr+Mr],[0.004036,2*Dr-Mr+Mpr],[0.003994,2*Dr+2*Mpr],[0.003861,4*Dr],[0.003665,2*Dr-3*Mpr],[-0.002689,Mr-2*Mpr],[-0.002602,2*Dr-2*Fr+Mpr]];for(const[a,angle]of terms)lon+=a*Math.sin(angle);return mod360(lon);}
+function venusLongitude(T){return mod360(trueAnomaly(mod360(212.2606+58517.8039*T),0.00677323-0.00004938*T)+131.563707);}
+function marsLongitude(T){return mod360(trueAnomaly(mod360(19.373+19140.2993*T),0.09341233-0.00011199*T)+336.04084);}
+function jupiterLongitude(T){return mod360(trueAnomaly(mod360(20.9202+3034.9057*T),0.04849485+0.00016323*T)+14.27495);}
+function saturnLongitude(T){return mod360(trueAnomaly(mod360(317.9232+1221.5515*T),0.05554814-0.00034664*T)+93.05714);}
+function neptuneLongitude(T){return mod360(trueAnomaly(mod360(304.3486+218.461*T),0.00895439+0.00000818*T)+44.97135);}
+function northNode(T){return mod360(125.0445479-1934.1362608*T+0.0020762*T*T);}
+function computePlanets(jd){const T=julianCenturies(jd);return{Sun:sunLongitude(T),Moon:moonLongitude(T),Venus:venusLongitude(T),Mars:marsLongitude(T),Jupiter:jupiterLongitude(T),Saturn:saturnLongitude(T),Neptune:neptuneLongitude(T),NorthNode:northNode(T)};}
+function ascendant(jd,lat,lng){const T=julianCenturies(jd);let GMST=280.46061837+360.98564736629*(jd-2451545)+0.000387933*T*T-T*T*T/38710000;const RAMC=toRad(mod360(GMST+lng)),latR=toRad(lat),e=toRad(23.4392911);return mod360(toDeg(Math.atan2(-Math.cos(RAMC),Math.sin(e)*Math.tan(latR)+Math.cos(e)*Math.sin(RAMC))));}
+function houseOf(lon,asc){return Math.floor(mod360(lon-asc)/30)+1;}
+function signOf(lon){return SIGNS[Math.floor(lon/30)];}
+
+const DIGNITY={
+  Sun:{domicile:['Leo'],exaltation:['Aries'],detriment:['Aquarius'],fall:['Libra']},
+  Moon:{domicile:['Cancer'],exaltation:['Taurus'],detriment:['Capricorn'],fall:['Scorpio']},
+  Venus:{domicile:['Taurus','Libra'],exaltation:['Pisces'],detriment:['Aries','Scorpio'],fall:['Virgo']},
+  Mars:{domicile:['Aries','Scorpio'],exaltation:['Capricorn'],detriment:['Libra','Taurus'],fall:['Cancer']},
+  Jupiter:{domicile:['Sagittarius','Pisces'],exaltation:['Cancer'],detriment:['Gemini','Virgo'],fall:['Capricorn']},
+  Saturn:{domicile:['Capricorn','Aquarius'],exaltation:['Libra'],detriment:['Cancer','Leo'],fall:['Aries']},
+};
+function dignityOf(planet,lon){const s=signOf(lon),d=DIGNITY[planet];if(!d)return{label:'Neutral',mod:1};if(d.domicile?.includes(s))return{label:'Domicile',mod:1.4};if(d.exaltation?.includes(s))return{label:'Exaltation',mod:1.25};if(d.detriment?.includes(s))return{label:'Detriment',mod:0.7};if(d.fall?.includes(s))return{label:'Fall',mod:0.75};return{label:'Peregrine',mod:1};}
+
+const ASPECTS=[
+  {name:'Conjunction',sym:'☌',angle:0,orbMax:8,quality:'fusion'},
+  {name:'Opposition',sym:'☍',angle:180,orbMax:8,quality:'tension'},
+  {name:'Trine',sym:'△',angle:120,orbMax:8,quality:'harmony'},
+  {name:'Square',sym:'□',angle:90,orbMax:7,quality:'friction'},
+  {name:'Sextile',sym:'✶',angle:60,orbMax:6,quality:'ease'},
+  {name:'Quincunx',sym:'⚻',angle:150,orbMax:3,quality:'adjustment'},
+];
+function findAspect(lonA,lonB){const diff=Math.abs(lonA-lonB)%360,sep=diff>180?360-diff:diff;for(const asp of ASPECTS){const orb=Math.abs(sep-asp.angle);if(orb<=asp.orbMax)return{...asp,orb:parseFloat(orb.toFixed(2)),orbRatio:orb/asp.orbMax};}return null;}
+function orbFactor(r){return Math.cos(r*Math.PI/2);}
+
+// ═══════════════════════════════════════════════════════════════
+// TONE SYSTEM
+// ═══════════════════════════════════════════════════════════════
+const TONE = { t1:'martial', t2:'deep', t3:'harmony' };
+
+function toneWeights() {
+  const w = {
+    marsBonus:   1,
+    venusBonus:  1,
+    tensionAsp:  0,
+    saturnPen:   1,
+    conjBonus:   1,
+    jupBonus:    1,
+  };
+  if (TONE.t1 === 'martial') {
+    w.marsBonus = 1.5;
+    w.venusBonus = 0.75;
+  } else {
+    w.venusBonus = 1.5;
+    w.marsBonus = 0.75;
+    w.jupBonus = 1.3;
+  }
+  if (TONE.t2 === 'deep') {
+    w.conjBonus = 1.4;
+  } else {
+    w.jupBonus *= 1.4;
+  }
+  if (TONE.t3 === 'tension') {
+    w.tensionAsp = 0.5;
+    w.saturnPen = 0.3;
+  } else {
+    w.tensionAsp = 0;
+    w.saturnPen = 1.0;
+  }
+  return w;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RETROGRADE DETECTION
+// ═══════════════════════════════════════════════════════════════
+
+function isRetrograde(planetFn, jd) {
+  const T = julianCenturies;
+  const before = planetFn(T(jd - 0.5));
+  const after  = planetFn(T(jd + 0.5));
+  let delta = after - before;
+  if (delta > 180)  delta -= 360;
+  if (delta < -180) delta += 360;
+  return delta < 0;
+}
+
+function computeRetrogrades(jd) {
+  return {
+    Venus:   isRetrograde(venusLongitude,   jd),
+    Mars:    isRetrograde(marsLongitude,    jd),
+    Jupiter: isRetrograde(jupiterLongitude, jd),
+    Saturn:  isRetrograde(saturnLongitude,  jd),
+    Mercury: isRetrograde(mercuryRetrograde, jd),
+  };
+}
+
+function mercuryRetrograde(T) {
+  return mod360(trueAnomaly(mod360(174.7948 + 149472.5159*T), 0.20563069 + 0.00002527*T) + 77.45779628);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCORING — tone-aware
+// ═══════════════════════════════════════════════════════════════
+
+function scoreDateTime(jd, wN, mN, wLat, wLng) {
+  const trans = computePlanets(jd);
+  const asc_w = ascendant(jd, wLat, wLng);
+  const W = toneWeights();
+  const RX = computeRetrogrades(jd);
+  const categories = [];
+  let grandTotal = 0;
+
+  function aspScore(asp, baseGood, baseTension) {
+    if (!asp) return 0;
+    const q = asp.quality;
+    const of = orbFactor(asp.orbRatio);
+    let base = 0;
+    if (q==='fusion')   base = baseGood * (1 + (W.conjBonus-1));
+    else if (q==='harmony' || q==='ease') base = baseGood;
+    else if (q==='tension' || q==='friction') base = baseGood * W.tensionAsp;
+    return base * of;
+  }
+
+  const venusRxMod = RX.Venus   ? 0.6 : 1.0;
+  const marsRxMod  = RX.Mars    ? 0.6 : 1.0;
+  const jupRxMod   = RX.Jupiter ? 0.85 : 1.0;
+
+  // ── CAT 1: Venus-Mars Dynamics (max 30) ──────────────────────
+  {
+    const items = []; let pts = 0;
+
+    const asp = findAspect(trans.Venus, trans.Mars);
+    if (asp) {
+      const base = asp.quality==='fusion'?12 : asp.quality==='harmony'?10 : asp.quality==='ease'?7 : (asp.quality==='tension'||asp.quality==='friction')?8:2;
+      const vd=dignityOf('Venus',trans.Venus), md=dignityOf('Mars',trans.Mars);
+      const digMod=(vd.mod+md.mod)/2;
+      let val = aspScore(asp, base, base) * digMod;
+      val *= (W.marsBonus * marsRxMod + W.venusBonus * venusRxMod) / 2;
+      const v=parseFloat(val.toFixed(1)); pts+=v;
+      const rxNote = [RX.Venus?'♀℞':'', RX.Mars?'♂℞':''].filter(Boolean).join(' ');
+      items.push({label:`Transit Venus ${asp.sym} Transit Mars${rxNote?' · '+rxNote:''}`,pts:v,max:12,isUniversal:true,
+        rationale:`${asp.name}, orb ${asp.orb}° · Venus ${vd.label}, Mars ${md.label}${RX.Venus?' · Venus ℞ ×0.6':''}${RX.Mars?' · Mars ℞ ×0.6':''}`});
+    } else items.push({label:'Transit Venus ♀ ♂ Transit Mars',pts:0,max:12,isUniversal:true,rationale:'No aspect in sky at this hour'});
+
+    const asp2 = findAspect(trans.Venus, mN.Mars);
+    if (asp2) {
+      const base = asp2.quality==='fusion'?9:asp2.quality==='harmony'?8:asp2.quality==='ease'?5:6;
+      const vd = dignityOf('Venus',trans.Venus);
+      const v = parseFloat((aspScore(asp2,base,base)*vd.mod*W.venusBonus*venusRxMod).toFixed(1));
+      pts+=v;
+      items.push({label:`Transit Venus${RX.Venus?' ℞':''} ${asp2.sym} ${P.m.name} natal Mars`,pts:v,max:9,isUniversal:false,
+        rationale:`${asp2.name}, orb ${asp2.orb}° · Venus ${vd.label} · ×${(W.venusBonus*venusRxMod).toFixed(2)}${RX.Venus?' (retrograde)':''}`});
+    } else items.push({label:`Transit Venus → ${P.m.name} natal Mars`,pts:0,max:9,isUniversal:false,rationale:'No aspect'});
+
+    const asp3 = findAspect(trans.Mars, wN.Venus);
+    if (asp3) {
+      const base = asp3.quality==='fusion'?9:asp3.quality==='harmony'?8:asp3.quality==='ease'?5:6;
+      const md = dignityOf('Mars',trans.Mars);
+      const v = parseFloat((aspScore(asp3,base,base)*md.mod*W.marsBonus*marsRxMod).toFixed(1));
+      pts+=v;
+      items.push({label:`Transit Mars${RX.Mars?' ℞':''} ${asp3.sym} ${P.w.name} natal Venus`,pts:v,max:9,isUniversal:false,
+        rationale:`${asp3.name}, orb ${asp3.orb}° · Mars ${md.label} · ×${(W.marsBonus*marsRxMod).toFixed(2)}${RX.Mars?' (retrograde)':''}`});
+    } else items.push({label:`Transit Mars → ${P.w.name} natal Venus`,pts:0,max:9,isUniversal:false,rationale:'No aspect'});
+
+    const catPts=parseFloat(Math.min(pts,30).toFixed(1)); grandTotal+=catPts;
+    categories.push({name:'I · Venus–Mars Dynamics',points:catPts,maxPoints:30,items});
+  }
+
+  // ── CAT 2: Moon Placement (max 20) ──────────────────────────
+  {
+    const items = []; let pts = 0;
+    const moonSign = signOf(trans.Moon);
+
+    const SIGN_RULER = {
+      Aries:'Mars', Taurus:'Venus', Gemini:'Mercury', Cancer:'Moon',
+      Leo:'Sun', Virgo:'Mercury', Libra:'Venus', Scorpio:'Mars',
+      Sagittarius:'Jupiter', Capricorn:'Saturn', Aquarius:'Saturn', Pisces:'Jupiter'
+    };
+    const SIGN_NATURAL_HOUSE = {
+      Aries:1, Taurus:2, Gemini:3, Cancer:4, Leo:5, Virgo:6,
+      Libra:7, Scorpio:8, Sagittarius:9, Capricorn:10, Aquarius:11, Pisces:12
+    };
+    const rulerToneWeight = (ruler) => {
+      if (ruler==='Mars')    return W.marsBonus;
+      if (ruler==='Venus')   return W.venusBonus;
+      if (ruler==='Jupiter') return W.jupBonus;
+      if (ruler==='Saturn')  return W.saturnPen > 0.5 ? 0.6 : 1.0;
+      if (ruler==='Sun')     return (W.marsBonus + W.venusBonus) / 2;
+      if (ruler==='Moon')    return 1.1;
+      return 0.8;
+    };
+    const h8val = TONE.t2==='deep'   ? (0.6 + W.marsBonus * 0.7)  : (0.3 + W.marsBonus * 0.3);
+    const h5val = TONE.t2==='playful' ? (0.6 + W.jupBonus  * 0.7)  : (0.3 + W.jupBonus  * 0.3);
+    const houseToneValence = (h) => {
+      if (h===8)  return h8val;
+      if (h===5)  return h5val;
+      if (h===1)  return (W.marsBonus * 0.6 + 0.4);
+      if (h===7)  return (W.venusBonus * 0.6 + 0.4);
+      if (h===4)  return 0.6;
+      if (h===2)  return W.venusBonus * 0.5;
+      if (h===12) return TONE.t2==='deep' ? 1.1 : 0.4;
+      if (h===10||h===6||h===3||h===9||h===11) return 0.3;
+      return 0.4;
+    };
+    const moonDignityMod = moonSign==='Cancer'  ? 1.3
+                         : moonSign==='Taurus'  ? 1.25
+                         : moonSign==='Capricorn'? 0.7
+                         : moonSign==='Scorpio' ? 0.75
+                         : 1.0;
+    const moonRuler = SIGN_RULER[moonSign];
+    const moonNatHouse = SIGN_NATURAL_HOUSE[moonSign];
+    const msvRaw = 6 * rulerToneWeight(moonRuler) * houseToneValence(moonNatHouse) * moonDignityMod;
+    let msv = parseFloat(Math.min(msvRaw, 10).toFixed(1));
+    pts += msv;
+    items.push({label:`Moon in ${moonSign}`,pts:msv,max:10,isUniversal:true,
+      rationale:`Ruler: ${moonRuler} (×${rulerToneWeight(moonRuler).toFixed(2)}) · natural H${moonNatHouse} valence ×${houseToneValence(moonNatHouse).toFixed(2)} · dignity ${moonDignityMod===1?'peregrine':'mod ×'+moonDignityMod}`});
+
+    const moonH = houseOf(trans.Moon, asc_w);
+    const angularBonus = [1,4,7,10].includes(moonH) ? 1.2 : [2,5,8,11].includes(moonH) ? 1.0 : 0.75;
+    const mhvRaw = 8 * houseToneValence(moonH) * angularBonus;
+    let mhv = parseFloat(Math.min(Math.max(mhvRaw, 0), 8).toFixed(1));
+    pts += mhv;
+    items.push({label:`Moon in House ${moonH} (${P.w.pos} chart)`,pts:mhv,max:8,isUniversal:false,
+      rationale:`House ${moonH} tone valence ×${houseToneValence(moonH).toFixed(2)} · ${[1,4,7,10].includes(moonH)?'angular +20%':[2,5,8,11].includes(moonH)?'succedent neutral':'cadent −25%'}`});
+
+    if ((trans.Moon%30)>27) { pts-=5; items.push({label:'Moon void-of-course',pts:-5,max:0,isUniversal:true,rationale:'Past final aspect in sign'}); }
+
+    for (const [target,tlon] of [['Transit Venus',trans.Venus],['Transit Mars',trans.Mars]]) {
+      const a = findAspect(trans.Moon,tlon);
+      if (a && (a.quality==='harmony'||a.quality==='ease'||a.quality==='fusion'||(W.tensionAsp>0&&(a.quality==='tension'||a.quality==='friction')))) {
+        const v=parseFloat((2*orbFactor(a.orbRatio)*(W.tensionAsp>0&&(a.quality==='tension'||a.quality==='friction')?W.tensionAsp:1)).toFixed(1));
+        pts+=v; items.push({label:`Moon ${a.sym} ${target}`,pts:v,max:2,isUniversal:true,rationale:`${a.name}, orb ${a.orb}°`});
+      }
+    }
+
+    const catPts=parseFloat(Math.min(pts,20).toFixed(1)); grandTotal+=catPts;
+    categories.push({name:'II · Moon Placement & Quality',points:catPts,maxPoints:20,items});
+  }
+
+  // ── CAT 3: Natal Synastry Baseline (max 20) ─────────────────
+  {
+    const items = []; let pts = 0;
+    const pairs=[['Venus','Mars',10],['Mars','Venus',10],['Sun','Moon',6],['Moon','Sun',6],['Venus','Venus',5],['Mars','Mars',4],['Sun','Venus',4],['Venus','Sun',4],['Moon','Venus',3],['Moon','Mars',3],['Sun','Sun',3]];
+    for (const [wp,mp,baseW] of pairs) {
+      const wl=wN[wp],ml=mN[mp];
+      if (wl===undefined||ml===undefined) continue;
+      const a=findAspect(wl,ml); if (!a) continue;
+      const qMod=(['harmony','fusion','ease'].includes(a.quality))?1:
+                 (a.quality==='tension'||a.quality==='friction')?W.tensionAsp:0.5;
+      const v=parseFloat((baseW*qMod*orbFactor(a.orbRatio)).toFixed(1));
+      if (v>=0.3) { pts+=v; items.push({label:`${P.w.name} ${wp} ${a.sym} ${P.m.name} ${mp}`,pts:v,max:baseW,isUniversal:false,rationale:`${a.name}, orb ${a.orb}° — natal bond`}); }
+    }
+    const catPts=parseFloat(Math.min(pts,20).toFixed(1)); grandTotal+=catPts;
+    categories.push({name:'III · Natal Synastry Baseline',points:catPts,maxPoints:20,items:items.slice(0,7)});
+  }
+
+  // ── CAT 4: Transit Activations of Personal Points (max 15) ──
+  {
+    const items = []; let pts = 0;
+    const checks=[
+      {t:'Venus',n:'Moon', who:P.w.name, nLon:wN.Moon,  max:5},
+      {t:'Mars', n:'Moon', who:P.m.name, nLon:mN.Moon,  max:5},
+      {t:'Venus',n:'Sun',  who:P.w.name, nLon:wN.Sun,   max:4},
+      {t:'Mars', n:'Sun',  who:P.m.name, nLon:mN.Sun,   max:4},
+      {t:'Venus',n:'Venus',who:P.w.name, nLon:wN.Venus,  max:3},
+      {t:'Mars', n:'Mars', who:P.m.name, nLon:mN.Mars,   max:3},
+      {t:'Jupiter',n:'Venus',who:P.w.name,nLon:wN.Venus, max:3},
+      {t:'Jupiter',n:'Mars', who:P.m.name,nLon:mN.Mars,  max:3},
+    ];
+    for (const c of checks) {
+      const a=findAspect(trans[c.t],c.nLon); if (!a) continue;
+      const isGood=['harmony','fusion','ease'].includes(a.quality);
+      const isTense=a.quality==='tension'||a.quality==='friction';
+      if (!isGood && !(isTense && W.tensionAsp>0)) continue;
+      const dg=dignityOf(c.t,trans[c.t]);
+      const rxM = c.t==='Venus'?venusRxMod : c.t==='Mars'?marsRxMod : c.t==='Jupiter'?jupRxMod : 1;
+      let toneM = c.t==='Mars'?W.marsBonus : c.t==='Venus'?W.venusBonus : c.t==='Jupiter'?W.jupBonus : 1;
+      const qM = isGood ? 1 : W.tensionAsp;
+      const v=parseFloat((c.max*orbFactor(a.orbRatio)*dg.mod*toneM*rxM*qM).toFixed(1));
+      pts+=v;
+      const rxFlag = (c.t==='Venus'&&RX.Venus)||(c.t==='Mars'&&RX.Mars)||(c.t==='Jupiter'&&RX.Jupiter);
+      items.push({label:`Transit ${c.t}${rxFlag?' ℞':''} ${a.sym} ${c.who} natal ${c.n}`,pts:v,max:c.max,isUniversal:false,
+        rationale:`${a.name}, orb ${a.orb}° · ${c.t} ${dg.label} · ×${(toneM*rxM).toFixed(2)}${rxFlag?' (retrograde)':''}`});
+    }
+    const catPts=parseFloat(Math.min(pts,15).toFixed(1)); grandTotal+=catPts;
+    categories.push({name:'IV · Transit Activations of Personal Points',points:catPts,maxPoints:15,items});
+  }
+
+  // ── CAT 5: Sky Conditions & Dignity (max 15) ────────────────
+  {
+    const items = []; let pts = 0;
+    const vd=dignityOf('Venus',trans.Venus), md=dignityOf('Mars',trans.Mars);
+    const vDigMod = W.venusBonus * venusRxMod;
+    const mDigMod = W.marsBonus  * marsRxMod;
+    if (vd.label==='Domicile')   {const p=parseFloat((4*vDigMod).toFixed(1));pts+=p;items.push({label:`Venus in Domicile (${signOf(trans.Venus)})${RX.Venus?' ℞':''}`,pts:p,max:4,rationale:`Classical dignity · ×${vDigMod.toFixed(2)}${RX.Venus?' retrograde suppressed':''}`});}
+    if (vd.label==='Exaltation') {const p=parseFloat((3*vDigMod).toFixed(1));pts+=p;items.push({label:`Venus in Exaltation (${signOf(trans.Venus)})${RX.Venus?' ℞':''}`,pts:p,max:4,rationale:`Classical dignity · ×${vDigMod.toFixed(2)}`});}
+    if (vd.label==='Detriment')  {pts-=3; items.push({label:`Venus in Detriment (${signOf(trans.Venus)})`,pts:-3,max:0,rationale:'Debilitated'});}
+    if (vd.label==='Fall')       {pts-=2; items.push({label:`Venus in Fall (${signOf(trans.Venus)})`,pts:-2,max:0,rationale:'Debilitated'});}
+    if (md.label==='Domicile')   {const p=parseFloat((3*mDigMod).toFixed(1));pts+=p;items.push({label:`Mars in Domicile (${signOf(trans.Mars)})${RX.Mars?' ℞':''}`,pts:p,max:3,rationale:`Classical dignity · ×${mDigMod.toFixed(2)}${RX.Mars?' retrograde suppressed':''}`});}
+    if (md.label==='Exaltation') {const p=parseFloat((2*mDigMod).toFixed(1));pts+=p;items.push({label:`Mars in Exaltation (${signOf(trans.Mars)})${RX.Mars?' ℞':''}`,pts:p,max:3,rationale:`Classical dignity · ×${mDigMod.toFixed(2)}`});}
+    if (md.label==='Detriment')  {pts-=2; items.push({label:`Mars in Detriment (${signOf(trans.Mars)})`,pts:-2,max:0,rationale:'Debilitated'});}
+    if (md.label==='Fall')       {pts-=2; items.push({label:`Mars in Fall (${signOf(trans.Mars)})`,pts:-2,max:0,rationale:'Debilitated'});}
+
+    for (const [target,lon] of [['Venus',trans.Venus],['Mars',trans.Mars]]) {
+      const a=findAspect(trans.Saturn,lon);
+      if (a&&(a.quality==='tension'||a.quality==='friction')) {
+        const pen=parseFloat((-3*orbFactor(a.orbRatio)*W.saturnPen).toFixed(1));
+        pts+=pen; items.push({label:`Saturn ${a.sym} Transit ${target}`,pts:pen,max:0,rationale:`${a.name}, orb ${a.orb}° · penalty ×${W.saturnPen.toFixed(1)}`});
+      }
+    }
+    for (const [tp,tlon] of [['Venus',trans.Venus],['Mars',trans.Mars]]) {
+      const a=findAspect(trans.NorthNode,tlon);
+      if (a&&a.name==='Conjunction') {const v=parseFloat((2*orbFactor(a.orbRatio)).toFixed(1));pts+=v;items.push({label:`North Node ☌ Transit ${tp}`,pts:v,max:2,rationale:`Orb ${a.orb}° — fated quality`});}
+    }
+
+    const catPts=parseFloat(Math.min(pts,15).toFixed(1)); grandTotal+=catPts;
+    categories.push({name:'V · Sky Conditions & Dignity',points:catPts,maxPoints:15,items});
+  }
+
+  // ── CAT 6: Retrograde Flags ──────────────────────────────────
+  {
+    const items = [];
+    const rxPlanets = [
+      { name:'Venus',   rx:RX.Venus,   effect:'Desire turns inward — attraction present but complicated; things revisited rather than initiated. Scores ×0.6.' },
+      { name:'Mars',    rx:RX.Mars,    effect:'Drive is frustrated or internalized; action delayed or misdirected. Scores ×0.6.' },
+      { name:'Jupiter', rx:RX.Jupiter, effect:'Expansion contracts; fortune is less generous. Scores ×0.85.' },
+      { name:'Saturn',  rx:RX.Saturn,  effect:'Saturn retrograde eases its restrictions slightly — discipline relaxes. No score change.' },
+      { name:'Mercury', rx:RX.Mercury, effect:'Communication and timing are complicated — not scored, but worth noting.' },
+    ];
+    for (const p of rxPlanets) {
+      if (p.rx) items.push({ label:`${p.name} ℞`, pts:0, max:0, rationale:p.effect });
+    }
+    if (!items.length) items.push({ label:'No personal planets retrograde', pts:0, max:0, rationale:'All key planets are direct — energy flows without obstruction.' });
+    categories.push({ name:'VI · Retrograde Conditions', points:0, maxPoints:0, items });
+  }
+
+  return{total:parseFloat(Math.min(grandTotal,100).toFixed(1)),maxTotal:100,categories,trans,asc_w,rx:RX};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BIRTH DATA & INITIAL SEARCH
+// ═══════════════════════════════════════════════════════════════
+
+let BIRTH = {
+  wYear:1980, wMonth:5, wDay:20, wHour:1, wMin:30, wAmpm:'PM',
+  wCity:'Berkeley, California',
+  wLat:37.8716, wLng:-122.2727, wUtcOffset:-7,
+  wGender: 'woman',
+  mYear:1976, mMonth:5, mDay:13, mHour:7, mMin:0, mAmpm:'AM',
+  mCity:'Portland, Maine',
+  mLat:43.6615, mLng:-70.2553, mUtcOffset:-4,
+  mGender: 'man',
+};
+
+function localToUtcH(hour, min, ampm, utcOffset) {
+  let h24 = hour % 12;
+  if (ampm === 'PM') h24 += 12;
+  return h24 - utcOffset;
+}
+
+function computeNatals() {
+  const wUtcH = localToUtcH(BIRTH.wHour, BIRTH.wMin, BIRTH.wAmpm, BIRTH.wUtcOffset);
+  const mUtcH = localToUtcH(BIRTH.mHour, BIRTH.mMin, BIRTH.mAmpm, BIRTH.mUtcOffset);
+  const wJD = jdn(BIRTH.wYear, BIRTH.wMonth, BIRTH.wDay, wUtcH, BIRTH.wMin);
+  const mJD = jdn(BIRTH.mYear, BIRTH.mMonth, BIRTH.mDay, mUtcH, BIRTH.mMin);
+  return { wNatal: computePlanets(wJD), mNatal: computePlanets(mJD) };
+}
+
+let { wNatal, mNatal } = computeNatals();
+
+const P = {
+  get _useGendered() {
+    return BIRTH.wGender !== 'person' && BIRTH.mGender !== 'person' && BIRTH.wGender !== BIRTH.mGender;
+  },
+  get w() {
+    if (this._useGendered && BIRTH.wGender === 'woman')
+      return { sub:'She', obj:'her', pos:'her', name:'Person One (Woman)', short:'her', label:'Woman' };
+    if (this._useGendered && BIRTH.wGender === 'man')
+      return { sub:'He', obj:'him', pos:'his', name:'Person One (Man)', short:'his', label:'Man' };
+    return { sub:'They', obj:'them', pos:'their', name:'Person One', short:'P1', label:'Person' };
+  },
+  get m() {
+    if (this._useGendered && BIRTH.mGender === 'man')
+      return { sub:'He', obj:'him', pos:'his', name:'Person Two (Man)', short:'his', label:'Man' };
+    if (this._useGendered && BIRTH.mGender === 'woman')
+      return { sub:'She', obj:'her', pos:'her', name:'Person Two (Woman)', short:'her', label:'Woman' };
+    return { sub:'They', obj:'them', pos:'their', name:'Person Two', short:'P2', label:'Person' };
+  },
+};
+
+const PROXY = 'https://corsproxy.io/?';
+
+async function fetchWithFallback(url, options) {
+  try {
+    const res = await fetch(url, options);
+    if (res.ok) return res;
+  } catch(e) { }
+  const proxyUrl = PROXY + encodeURIComponent(url);
+  const res = await fetch(proxyUrl, options);
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
+  return res;
+}
+
+async function geocodeCity(cityStr) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityStr)}&format=json&limit=1`;
+  const res = await fetchWithFallback(url, { headers: { 'Accept-Language': 'en' } });
+  const data = await res.json();
+  if (!data.length) throw new Error(`Could not find "${cityStr}" — try a more specific name (e.g. "Portland, Maine, USA")`);
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), displayName: data[0].display_name };
+}
+
+async function getUtcOffset(lat, lng, year, month, day) {
+  const tzUrl = `https://timeapi.io/api/timezone/coordinate?latitude=${lat}&longitude=${lng}`;
+  const tzRes = await fetchWithFallback(tzUrl, {});
+  const tzData = await tzRes.json();
+  const tz = tzData.timeZone;
+  const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const convRes = await fetchWithFallback(`https://timeapi.io/api/conversion/converttimezone`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fromTimeZone: tz, dateTime: `${dateStr} 12:00:00`, toTimeZone: 'UTC', dstAmbiguity: '' })
+  });
+  const convData = await convRes.json();
+  if (!convData || !convData.conversionResult || !convData.conversionResult.dateTime)
+    throw new Error(`Time-zone lookup failed for ${tz}`);
+  // Compare both instants in UTC so the result does not depend on the viewer's own time zone.
+  const localNoon = new Date(`${dateStr}T12:00:00Z`);
+  const utcNoon   = new Date(convData.conversionResult.dateTime + 'Z');
+  const offsetHours = (localNoon - utcNoon) / 3600000;
+  return { offset: offsetHours, timezone: tz };
+}
+
+function renderBirthPanel() {
+  const p = BIRTH;
+  const ampmOpts = (val) => ['AM','PM'].map(v=>`<option${v===val?' selected':''}>${v}</option>`).join('');
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthOpts = (val) => monthNames.map((m,i)=>`<option value="${i+1}"${i+1===val?' selected':''}>${m}</option>`).join('');
+  return `
+<div class="birth-panel">
+  <div class="birth-panel-header" onclick="const b=this.nextElementSibling;const t=this.querySelector('.birth-panel-toggle');b.style.display=b.style.display==='none'?'block':'none';t.textContent=b.style.display==='none'?'▼ edit':'▲ close';">
+    <span class="birth-panel-title">Birth Information</span>
+    <span style="display:flex;align-items:center;gap:1rem">
+      <span style="font-size:0.8rem;font-style:italic;color:rgba(245,240,232,0.45)">${p.wCity} · ${p.mCity}</span>
+      <span class="birth-panel-toggle">▼ edit</span>
+    </span>
+  </div>
+  <div class="birth-panel-body" style="display:none">
+    <div class="birth-person">
+      <div class="birth-person-label">Person One</div>
+      <div class="birth-row">
+        <div class="birth-field">
+          <label>Identity</label>
+          <div style="display:flex;border:1px solid rgba(201,168,76,0.3);border-radius:2px;overflow:hidden">
+            <button class="birth-gender-btn ${p.wGender==='woman'?'active':''}" onclick="BIRTH.wGender='woman';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Woman</button>
+            <button class="birth-gender-btn ${p.wGender==='man'?'active':''}" onclick="BIRTH.wGender='man';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Man</button>
+            <button class="birth-gender-btn ${p.wGender==='person'?'active':''}" onclick="BIRTH.wGender='person';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Person</button>
+          </div>
+        </div>
+        <div class="birth-field" style="flex:2;min-width:160px">
+          <label>Birth City</label>
+          <input class="birth-input" id="wCity" type="text" value="${p.wCity}" placeholder="e.g. Berkeley, California">
+        </div>
+        <div class="birth-field"><label>Year</label><input class="birth-input birth-input-md" id="wYear" type="number" min="1900" max="2025" value="${p.wYear}"></div>
+        <div class="birth-field"><label>Month</label><select class="birth-input" id="wMonth" style="width:5rem">${monthOpts(p.wMonth)}</select></div>
+        <div class="birth-field"><label>Day</label><input class="birth-input birth-input-sm" id="wDay" type="number" min="1" max="31" value="${p.wDay}"></div>
+        <div class="birth-field"><label>Hour</label><input class="birth-input birth-input-sm" id="wHour" type="number" min="1" max="12" value="${p.wHour}"></div>
+        <div class="birth-field"><label>Min</label><input class="birth-input birth-input-sm" id="wMin" type="number" min="0" max="59" value="${String(p.wMin).padStart(2,'0')}"></div>
+        <div class="birth-field"><label>AM/PM</label><select class="birth-input" id="wAmpm" style="width:5rem">${ampmOpts(p.wAmpm)}</select></div>
+      </div>
+      <div id="wGeoStatus" style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.4);margin-top:0.4rem">
+        ${p.wCity} · ${p.wLat.toFixed(4)}°, ${p.wLng.toFixed(4)}° · UTC${p.wUtcOffset >= 0 ? '+' : ''}${p.wUtcOffset}
+      </div>
+    </div>
+    <div class="birth-person">
+      <div class="birth-person-label">Person Two</div>
+      <div class="birth-row">
+        <div class="birth-field">
+          <label>Identity</label>
+          <div style="display:flex;border:1px solid rgba(201,168,76,0.3);border-radius:2px;overflow:hidden">
+            <button class="birth-gender-btn ${p.mGender==='woman'?'active':''}" onclick="BIRTH.mGender='woman';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Woman</button>
+            <button class="birth-gender-btn ${p.mGender==='man'?'active':''}" onclick="BIRTH.mGender='man';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Man</button>
+            <button class="birth-gender-btn ${p.mGender==='person'?'active':''}" onclick="BIRTH.mGender='person';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Person</button>
+          </div>
+        </div>
+        <div class="birth-field" style="flex:2;min-width:160px">
+          <label>Birth City</label>
+          <input class="birth-input" id="mCity" type="text" value="${p.mCity}" placeholder="e.g. Portland, Maine">
+        </div>
+        <div class="birth-field"><label>Year</label><input class="birth-input birth-input-md" id="mYear" type="number" min="1900" max="2025" value="${p.mYear}"></div>
+        <div class="birth-field"><label>Month</label><select class="birth-input" id="mMonth" style="width:5rem">${monthOpts(p.mMonth)}</select></div>
+        <div class="birth-field"><label>Day</label><input class="birth-input birth-input-sm" id="mDay" type="number" min="1" max="31" value="${p.mDay}"></div>
+        <div class="birth-field"><label>Hour</label><input class="birth-input birth-input-sm" id="mHour" type="number" min="1" max="12" value="${p.mHour}"></div>
+        <div class="birth-field"><label>Min</label><input class="birth-input birth-input-sm" id="mMin" type="number" min="0" max="59" value="${String(p.mMin).padStart(2,'0')}"></div>
+        <div class="birth-field"><label>AM/PM</label><select class="birth-input" id="mAmpm" style="width:5rem">${ampmOpts(p.mAmpm)}</select></div>
+      </div>
+      <div id="mGeoStatus" style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.4);margin-top:0.4rem">
+        ${p.mCity} · ${p.mLat.toFixed(4)}°, ${p.mLng.toFixed(4)}° · UTC${p.mUtcOffset >= 0 ? '+' : ''}${p.mUtcOffset}
+      </div>
+    </div>
+    <div id="birthError" style="color:#ef9a9a;font-size:0.85rem;font-style:italic;margin-top:0.5rem;display:none"></div>
+    <button class="birth-submit" id="birthSubmitBtn" onclick="applyBirth()">Look Up & Recalculate</button>
+  </div>
+</div>`;
+}
+
+async function applyBirth() {
+  const btn = document.getElementById('birthSubmitBtn');
+  const errEl = document.getElementById('birthError');
+  btn.textContent = 'Looking up locations…'; btn.disabled = true;
+  errEl.style.display = 'none';
+
+  const g = (id) => document.getElementById(id);
+
+  try {
+    const wCity = g('wCity').value.trim();
+    const mCity = g('mCity').value.trim();
+    const wYear=+g('wYear').value, wMonth=+g('wMonth').value, wDay=+g('wDay').value;
+    const mYear=+g('mYear').value, mMonth=+g('mMonth').value, mDay=+g('mDay').value;
+
+    btn.textContent = 'Geocoding cities…';
+
+    async function resolveGeo(city, statusId) {
+      const manualLat = parseFloat(document.getElementById(statusId.replace('GeoStatus','ManualLat'))?.value);
+      const manualLng = parseFloat(document.getElementById(statusId.replace('GeoStatus','ManualLng'))?.value);
+      if (!isNaN(manualLat) && !isNaN(manualLng)) return { lat:manualLat, lng:manualLng, displayName:city, manual:true };
+      const geo = await geocodeCity(city);
+      document.getElementById(statusId).textContent = `Found: ${geo.displayName.split(',').slice(0,3).join(',')} · ${geo.lat.toFixed(4)}°, ${geo.lng.toFixed(4)}°`;
+      return geo;
+    }
+
+    async function resolveOffset(geo, year, month, day, statusId) {
+      const manualEl = document.getElementById(statusId.replace('GeoStatus','ManualOffset'));
+      if (manualEl && manualEl.value !== '') {
+        const off = parseFloat(manualEl.value);
+        document.getElementById(statusId).textContent += ` · manual UTC${off>=0?'+':''}${off}`;
+        return { offset:off, timezone:'manual' };
+      }
+      const tz = await getUtcOffset(geo.lat, geo.lng, year, month, day);
+      document.getElementById(statusId).textContent += ` · ${tz.timezone} (UTC${tz.offset>=0?'+':''}${tz.offset})`;
+      return tz;
+    }
+
+    const [wGeo, mGeo] = await Promise.all([resolveGeo(wCity,'wGeoStatus'), resolveGeo(mCity,'mGeoStatus')]);
+
+    btn.textContent = 'Looking up time zones…';
+    const [wTz, mTz] = await Promise.all([
+      resolveOffset(wGeo, wYear, wMonth, wDay, 'wGeoStatus'),
+      resolveOffset(mGeo, mYear, mMonth, mDay, 'mGeoStatus'),
+    ]);
+
+    BIRTH.wYear=wYear; BIRTH.wMonth=wMonth; BIRTH.wDay=wDay;
+    BIRTH.wHour=+g('wHour').value; BIRTH.wMin=+g('wMin').value; BIRTH.wAmpm=g('wAmpm').value;
+    BIRTH.wCity=wCity; BIRTH.wLat=wGeo.lat; BIRTH.wLng=wGeo.lng; BIRTH.wUtcOffset=wTz.offset;
+    BIRTH.mYear=mYear; BIRTH.mMonth=mMonth; BIRTH.mDay=mDay;
+    BIRTH.mHour=+g('mHour').value; BIRTH.mMin=+g('mMin').value; BIRTH.mAmpm=g('mAmpm').value;
+    BIRTH.mCity=mCity; BIRTH.mLat=mGeo.lat; BIRTH.mLng=mGeo.lng; BIRTH.mUtcOffset=mTz.offset;
+
+    const natals = computeNatals();
+    wNatal = natals.wNatal; mNatal = natals.mNatal;
+
+    btn.textContent = 'Done — recalculating…';
+    render();
+    if (window.Chart) { startCalChart(); startAllTonesChart(); startPolarityChart(); }
+
+  } catch(err) {
+    errEl.innerHTML = `
+      <div style="margin-bottom:0.5rem">Lookup failed: ${err.message}</div>
+      <div style="font-size:0.8rem;margin-bottom:0.8rem;color:rgba(245,240,232,0.5)">
+        You can enter coordinates manually and try again.
+        Find lat/lng at <a href="https://www.latlong.net" target="_blank" style="color:var(--gold)">latlong.net</a>.
+        UTC offset examples: −5 EST, −4 EDT, −7 PDT, −8 PST, +0 GMT, +1 CET.
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem 1.5rem;align-items:flex-end">
+        <div class="birth-field"><label>P1 Latitude</label><input class="birth-input birth-input-md" id="wManualLat" type="number" step="0.0001" placeholder="${BIRTH.wLat}"></div>
+        <div class="birth-field"><label>P1 Longitude</label><input class="birth-input birth-input-md" id="wManualLng" type="number" step="0.0001" placeholder="${BIRTH.wLng}"></div>
+        <div class="birth-field"><label>P1 UTC offset</label><input class="birth-input birth-input-sm" id="wManualOffset" type="number" step="0.5" placeholder="${BIRTH.wUtcOffset}"></div>
+        <div style="flex-basis:100%;height:0"></div>
+        <div class="birth-field"><label>P2 Latitude</label><input class="birth-input birth-input-md" id="mManualLat" type="number" step="0.0001" placeholder="${BIRTH.mLat}"></div>
+        <div class="birth-field"><label>P2 Longitude</label><input class="birth-input birth-input-md" id="mManualLng" type="number" step="0.0001" placeholder="${BIRTH.mLng}"></div>
+        <div class="birth-field"><label>P2 UTC offset</label><input class="birth-input birth-input-sm" id="mManualOffset" type="number" step="0.5" placeholder="${BIRTH.mUtcOffset}"></div>
+      </div>`;
+    errEl.style.display = 'block';
+    btn.textContent = 'Look Up & Recalculate';
+    btn.disabled = false;
+  }
+}
+
+function findBest() {
+  const BASE=jdn(2026,4,23);
+  let best={total:-Infinity};
+  for (let d=0;d<60;d++) {
+    for (let h=17;h<=21;h++) {
+      const jd=BASE+d+h/24;
+      const result=scoreDateTime(jd,wNatal,mNatal,BIRTH.wLat,BIRTH.wLng);
+      if (result.total>best.total){best=result;best.jd=jd;}
+    }
+  }
+  return best;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function jdToDate(jd){const z=Math.floor(jd+0.5),f=jd+0.5-z;let A=z;if(z>=2299161){const a=Math.floor((z-1867216.25)/36524.25);A=z+1+a-Math.floor(a/4);}const B=A+1524,C=Math.floor((B-122.1)/365.25),D=Math.floor(365.25*C),E=Math.floor((B-D)/30.6001);const month=E<14?E-1:E-13;return{day:B-D-Math.floor(30.6001*E),month,year:month>2?C-4716:C-4715,hour:Math.floor(f*24),min:Math.floor(((f*24)%1)*60)};}
+const MONTHS=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+const WEEKDAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function fmtTime(utcH,m){const h=((utcH-7)+24)%24;return`${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'} PDT`;}
+function formatPos(lon){const d=Math.floor(lon%30),m=Math.floor((lon%1)*60);return`${d}°${m}′ ${SIGNS[Math.floor(lon/30)]}`;}
+function aspColor(q){return{harmony:'#81c784',ease:'#64b5f6',fusion:'#fff176',tension:'#ef9a9a',friction:'#ffb74d',adjustment:'#b0bec5'}[q]||'#c9a84c';}
+function renderAspRow(a){return`<div class="aspect-row"><div class="planet-cell"><div class="planet-name">${a.from}</div><div class="planet-pos">${formatPos(a.fromPos)}</div></div><div class="aspect-glyph"><span style="color:${aspColor(a.quality)}">${a.sym}</span></div><div class="planet-cell"><div class="planet-name">${a.to}</div><div class="planet-pos">${formatPos(a.toPos)}</div></div><div class="orb-badge">${a.orb}°</div></div>`;}
+function renderNatal(p){return`<div class="natal-grid">${['Sun','Moon','Venus','Mars','Jupiter','Saturn','Neptune','NorthNode'].map(k=>`<div class="natal-item"><span class="natal-planet">${k==='NorthNode'?'☊ Node':k}</span><span class="natal-sign">${formatPos(p[k])}</span></div>`).join('')}</div>`;}
+function renderScoreBreakdown(result){
+  const pct=(result.total/result.maxTotal*100).toFixed(0);
+  const C_UNIV='#8d6e63', C_PERS='#c9a84c';
+  const badge=(u)=>u
+    ?`<span style="font-family:'Cinzel',serif;font-size:0.5rem;letter-spacing:0.12em;color:${C_UNIV};border:1px solid ${C_UNIV};padding:0.1rem 0.35rem;border-radius:1px;margin-left:5px;vertical-align:middle;opacity:0.85">UNIVERSAL</span>`
+    :`<span style="font-family:'Cinzel',serif;font-size:0.5rem;letter-spacing:0.12em;color:${C_PERS};border:1px solid ${C_PERS};padding:0.1rem 0.35rem;border-radius:1px;margin-left:5px;vertical-align:middle;opacity:0.85">PERSONAL</span>`;
+  const catHtml=result.categories.map(cat=>{
+    const itemsHtml=cat.items.map(item=>{
+      const cls=item.pts>0?'pos':item.pts<0?'neg':'zero';
+      const bw=item.max>0?Math.max(0,Math.min(100,item.pts/item.max*100)):0;
+      const bc=item.pts>=0?'#81c784':'#ef9a9a';
+      const showBadge = item.isUniversal !== undefined;
+      return`<div class="score-item">
+        <span class="si-label">${item.label}${showBadge?badge(item.isUniversal):''}</span>
+        <div class="si-bar-track"><div class="si-bar-fill" style="width:${bw}%;background:${bc}"></div></div>
+        <span class="si-pts ${cls}">${item.pts>0?'+':''}${item.pts}</span>
+      </div>
+      <div class="score-item" style="padding-top:0;border:none">
+        <span class="si-rationale">${item.rationale}</span>
+      </div>`;
+    }).join('');
+    const allUniv = cat.items.every(i=>i.isUniversal===true);
+    const allPers = cat.items.every(i=>i.isUniversal===false);
+    const catBadge = allUniv ? badge(true) : allPers ? badge(false) : '';
+    return`<div class="score-cat">
+      <div class="cat-label">
+        <span>${cat.name}${catBadge}</span>
+        <span class="cat-pts">${cat.points} / ${cat.maxPoints}</span>
+      </div>
+      ${itemsHtml}
+    </div><div style="height:0.5rem"></div>`;
+  }).join('');
+  return`<div class="score-panel section">
+    <div class="score-header" onclick="const b=this.nextElementSibling;const t=this.querySelector('.score-toggle');b.style.display=b.style.display==='none'?'block':'none';t.textContent=b.style.display==='none'?'▼ show breakdown':'▲ hide breakdown';">
+      <span class="score-title">Astrological Score Breakdown</span>
+      <span style="display:flex;align-items:center;gap:1rem">
+        <span class="score-total">${result.total} / ${result.maxTotal}</span>
+        <span class="score-toggle">▼ show breakdown</span>
+      </span>
+    </div>
+    <div class="score-body" style="display:none">
+      <div class="gauge-wrap">
+        <div class="gauge-track"><div class="gauge-fill" style="width:${pct}%"></div></div>
+        <div class="gauge-labels"><span>Inauspicious</span><span>Moderate</span><span>Favorable</span><span>Peak</span></div>
+      </div>
+      <div style="font-size:0.83rem;font-style:italic;color:rgba(245,240,232,0.38);margin-bottom:1.2rem;line-height:1.6">
+        Tone weights shown inline in rationales.
+        <span style="color:#8d6e63">■</span> Universal = same for everyone that day.
+        <span style="color:#c9a84c">■</span> Personal = specific to these two charts.
+      </div>
+      <div class="score-categories">${catHtml}</div>
+    </div>
+  </div>`;}
+function toneLabel(){const t1=TONE.t1==='martial'?'Urgent & Passionate':'Slow & Tender';const t2=TONE.t2==='deep'?'Deep & Transformative':'Playful & Romantic';const t3=TONE.t3==='tension'?'Tension Welcome':'Pure Harmony';return`${t1} · ${t2} · ${t3}`;}
+
+function makeStars(n){const sf=document.getElementById('starfield');for(let i=0;i<n;i++){const s=document.createElement('div');s.className='star';const sz=Math.random()*2+0.5;s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;animation-delay:${(Math.random()*5).toFixed(1)}s`;sf.appendChild(s);}}
+makeStars(150);
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+
+function render() {
+  const best = findBest();
+  const tr = best.trans, bestAsc = best.asc_w;
+  const bd = jdToDate(best.jd);
+  const dow = WEEKDAYS[Math.floor(best.jd+1.5)%7];
+
+  const transitDisp=[];
+  for (const tp of ['Venus','Mars','Moon','Jupiter']) {
+    for (const [who,natal,label] of [['w',wNatal,P.w.name],['m',mNatal,P.m.name]]) {
+      for (const np of ['Venus','Mars','Moon','Sun']) {
+        const a=findAspect(tr[tp],natal[np]);
+        if (a&&['harmony','fusion','ease','tension','friction'].includes(a.quality))
+          transitDisp.push({from:`Transit ${tp}`,to:`${label} natal ${np}`,...a,fromPos:tr[tp],toPos:natal[np]});
+      }
+    }
+  }
+  transitDisp.sort((a,b)=>a.orb-b.orb);
+
+  const synDisp=[];
+  for (const wp of ['Venus','Mars','Moon','Sun']) {
+    for (const mp of ['Venus','Mars','Moon','Sun']) {
+      const a=findAspect(wNatal[wp],mNatal[mp]);
+      if (a) synDisp.push({from:`${P.w.name} ${wp}`,to:`${P.m.name} ${mp}`,...a,fromPos:wNatal[wp],toPos:mNatal[mp]});
+    }
+  }
+  synDisp.sort((a,b)=>(['harmony','fusion'].includes(a.quality)?0:1)-(['harmony','fusion'].includes(b.quality)?0:1)||a.orb-b.orb);
+
+  const moonH=houseOf(tr.Moon,bestAsc), venusH=houseOf(tr.Venus,bestAsc), marsH=houseOf(tr.Mars,bestAsc);
+  const vmAsp=findAspect(tr.Venus,tr.Mars);
+
+  function polarityScore(natalChart) {
+    let drawIn = 0, moveOut = 0;
+    const tmv = findAspect(tr.Mars, natalChart.Venus);
+    if (tmv && ['fusion','harmony','ease'].includes(tmv.quality)) drawIn += 10 * orbFactor(tmv.orbRatio);
+    const tvm = findAspect(tr.Venus, natalChart.Mars);
+    if (tvm && ['fusion','harmony','ease'].includes(tvm.quality)) moveOut += 10 * orbFactor(tvm.orbRatio);
+    const vDig = dignityOf('Venus', natalChart.Venus).mod;
+    drawIn += (vDig - 1) * 8;
+    const mDig = dignityOf('Mars', natalChart.Mars).mod;
+    moveOut += (mDig - 1) * 8;
+    const wvhm = findAspect(natalChart.Venus, (natalChart === wNatal ? mNatal : wNatal).Mars);
+    if (wvhm && ['fusion','harmony','ease'].includes(wvhm.quality)) drawIn += 5 * orbFactor(wvhm.orbRatio);
+    const wmhv = findAspect(natalChart.Mars, (natalChart === wNatal ? mNatal : wNatal).Venus);
+    if (wmhv && ['fusion','harmony','ease'].includes(wmhv.quality)) moveOut += 5 * orbFactor(wmhv.orbRatio);
+    return { drawIn, moveOut };
+  }
+
+  const wPol = polarityScore(wNatal);
+  const mPol = polarityScore(mNatal);
+
+  function polarityLabel(pol, pw) {
+    const diff = pol.drawIn - pol.moveOut;
+    const margin = Math.abs(diff);
+    const name = pw.sub;
+    if (margin < 1.5) return { role: 'balanced', desc: `${name} ${pw.sub==='They'?'are':'is'} evenly poised — neither drawing in nor moving toward dominates` };
+    if (diff > 0)     return { role: 'drawing',  desc: `${name} draw${pw.sub==='They'?'':'s'} inward — magnetic, receptive, setting the field` };
+    return              { role: 'moving',   desc: `${name} move${pw.sub==='They'?'':'s'} outward — initiating, reaching, closing the distance` };
+  }
+
+  const wRole = polarityLabel(wPol, P.w);
+  const mRole = polarityLabel(mPol, P.m);
+
+  function polarityVerdict() {
+    const ws = P.w.sub, ms = P.m.sub;
+    if (wRole.role === 'balanced' && mRole.role === 'balanced')
+      return 'The polarity between them is fluid — neither leads, neither follows; the current moves both ways at once.';
+    if (wRole.role === 'drawing' && mRole.role === 'moving')
+      return `${ws} draw${ws==='They'?'':'s'} inward; ${ms.toLowerCase()} move${ms==='They'?'':'s'} toward. The polarity is clean and complete.`;
+    if (wRole.role === 'moving' && mRole.role === 'drawing')
+      return `${ms} draw${ms==='They'?'':'s'} inward; ${ws.toLowerCase()} move${ws==='They'?'':'s'} toward. An inversion of the expected — and often the more electric for it.`;
+    if (wRole.role === 'drawing' && mRole.role === 'drawing')
+      return 'Both draw inward at this moment — a meeting of two open fields. Someone will need to break the surface.';
+    if (wRole.role === 'moving' && mRole.role === 'moving')
+      return 'Both move outward — desire looking for a landing place. The charge is high; the direction, mutual.';
+    if (wRole.role === 'balanced')
+      return `${ws} ${ws==='They'?'are':'is'} poised; ${mRole.role === 'moving' ? `${ms.toLowerCase()} reach${ms==='They'?'':'es'} toward` : `${ms.toLowerCase()} draw${ms==='They'?'':'s'} inward`}.`;
+    return `${ms} ${ms==='They'?'are':'is'} poised; ${wRole.role === 'moving' ? `${ws.toLowerCase()} reach${ws==='They'?'':'es'} toward` : `${ws.toLowerCase()} draw${ws==='They'?'':'s'} inward`}.`;
+  }
+
+  const showAsp = (a) => ['harmony','fusion','ease'].includes(a.quality) || (TONE.t3==='tension' && ['tension','friction'].includes(a.quality));
+
+  document.getElementById('app').innerHTML = `
+<header>
+  <div class="eyebrow">Synastry & Transit Reading</div>
+  <h1>The Appointed Hour</h1>
+  <div class="subtitle">A celestially grounded moment, scored by classical doctrine</div>
+</header>
+
+${renderBirthPanel()}
+
+<div class="tone-panel">
+  <div class="tone-panel-title">Tone of the Encounter</div>
+  <div class="tone-row">
+    <div class="tone-question">Passionate & urgent, or slow & tender?</div>
+    <div class="tone-toggle">
+      <button class="tone-btn ${TONE.t1==='martial'?'active':''}" onclick="setTone('t1','martial')">Urgent · Mars</button>
+      <div class="tone-sep"></div>
+      <button class="tone-btn ${TONE.t1==='venusian'?'active':''}" onclick="setTone('t1','venusian')">Tender · Venus</button>
+    </div>
+  </div>
+  <div class="tone-row">
+    <div class="tone-question">Deep & transformative, or playful & romantic?</div>
+    <div class="tone-toggle">
+      <button class="tone-btn ${TONE.t2==='deep'?'active':''}" onclick="setTone('t2','deep')">Deep · 8th house</button>
+      <div class="tone-sep"></div>
+      <button class="tone-btn ${TONE.t2==='playful'?'active':''}" onclick="setTone('t2','playful')">Playful · 5th house</button>
+    </div>
+  </div>
+  <div class="tone-row">
+    <div class="tone-question">Tension in the relationship, or pure harmony?</div>
+    <div class="tone-toggle">
+      <button class="tone-btn ${TONE.t3==='tension'?'active':''}" onclick="setTone('t3','tension')">Tension · Friction</button>
+      <div class="tone-sep"></div>
+      <button class="tone-btn ${TONE.t3==='harmony'?'active':''}" onclick="setTone('t3','harmony')">Pure Harmony</button>
+    </div>
+  </div>
+</div>
+
+<div class="moment-box section">
+  <div class="moment-label">The Optimal Moment · ${toneLabel()}</div>
+  <div class="moment-date">${dow}, ${MONTHS[bd.month]} ${bd.day}, ${bd.year} · ${fmtTime(bd.hour,bd.min)}</div>
+  <div class="moment-sub">Berkeley, California · Asc ${formatPos(bestAsc)}</div>
+  ${(()=>{
+    const rxFlags = Object.entries(best.rx||{}).filter(([,v])=>v).map(([k])=>k+'℞');
+    if (!rxFlags.length) return '';
+    return `<div style="margin-top:0.8rem;font-size:0.78rem;font-style:italic;color:#ef9a9a;">
+      ${rxFlags.join(' · ')} — retrograde, see score breakdown
+    </div>`;
+  })()}
+</div>
+
+<div class="verdict section">
+  <div class="verdict-title">The Reading</div>
+  <div class="verdict-text">
+    On ${dow}, ${MONTHS[bd.month]} ${bd.day}, at ${fmtTime(bd.hour,bd.min)},
+    the sky assembles what these charts have been building toward —
+    weighted now for a ${toneLabel().toLowerCase()} encounter.
+    Each point is earned by doctrine. The stars do not command. They only illuminate.
+  </div>
+  <div style="margin-top:1.2rem;font-style:italic;font-size:1rem;color:rgba(232,212,154,0.7);line-height:1.6">
+    ${polarityVerdict()}
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">House Activations at This Hour</div>
+  <div class="house-grid">
+    <div class="house-card">
+      <div class="house-num">Moon · House ${moonH} · ${P.w.pos.charAt(0).toUpperCase()+P.w.pos.slice(1)} Chart</div>
+      <div class="house-desc">${moonH===8?`The Moon traverses ${P.w.pos} 8th — merging, depth, erotic transformation. Boundaries dissolve.`:moonH===5?'Moon in the 5th: desire is spontaneous, joyful, expressive.':moonH===1?`Moon on the Ascendant: ${P.w.pos} emotional self is fully present and unguarded.`:moonH===7?'Moon in the 7th: relational awareness completely alive.':`Moon in house ${moonH}.`}</div>
+    </div>
+    <div class="house-card">
+      <div class="house-num">Venus · House ${venusH} · ${P.w.pos.charAt(0).toUpperCase()+P.w.pos.slice(1)} Chart</div>
+      <div class="house-desc">${venusH===5?'Venus in the 5th: radiant, alive to pleasure. Desire is expressive and warm.':venusH===8?'Venus in the 8th: attraction is magnetic and total. The pull transforms.':venusH===1?`Venus on the Ascendant: ${P.w.sub} embodies beauty and allure at this hour.`:venusH===7?'Venus in the 7th: the beloved is fully centered.':`Venus in house ${venusH}.`}</div>
+    </div>
+    <div class="house-card">
+      <div class="house-num">Mars · House ${marsH} · ${P.w.pos.charAt(0).toUpperCase()+P.w.pos.slice(1)} Chart</div>
+      <div class="house-desc">${marsH===8?'Mars in the 8th: desire is raw, urgent, hungry for dissolution.':marsH===1?`Mars on the Ascendant: ${P.w.sub} initiates, acts, wants.`:marsH===5?'Mars in the 5th: creative fire and physical longing fuse.':marsH===7?'Mars in the 7th: drive aimed outward toward the partner.':`Mars in house ${marsH}.`}</div>
+    </div>
+    <div class="house-card">
+      <div class="house-num">Venus ♀ ♂ Mars · The Sky</div>
+      <div class="house-desc">${vmAsp?`Venus and Mars are in <strong>${vmAsp.name}</strong> (orb ${vmAsp.orb}°) — ${vmAsp.name==='Conjunction'?'they fuse at a single degree. Rare and potent.':vmAsp.quality==='harmony'?'they flow in trine, desire running with ease.':vmAsp.quality==='ease'?'they meet in sextile: harmonious and alive.':vmAsp.quality==='tension'?'they oppose — desire charged with electric tension.':'they square — friction generates heat.'}`:'Venus and Mars hold no aspect between them at this hour.'}</div>
+    </div>
+    <div class="house-card" style="grid-column:1/-1">
+      <div class="house-num">Polarity · Who draws in, who moves toward</div>
+      <div class="house-desc" style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-top:0.3rem">
+        <div>
+          <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.15em;color:${wRole.role==='drawing'?'#64b5f6':wRole.role==='moving'?'#e57373':'rgba(245,240,232,0.4)'};margin-bottom:0.3rem;text-transform:uppercase">${P.w.name} · ${wRole.role==='drawing'?'↓ Drawing in':wRole.role==='moving'?'↑ Moving toward':'⇌ Balanced'}</div>
+          <div>${wRole.desc}</div>
+        </div>
+        <div>
+          <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.15em;color:${mRole.role==='drawing'?'#64b5f6':mRole.role==='moving'?'#e57373':'rgba(245,240,232,0.4)'};margin-bottom:0.3rem;text-transform:uppercase">${P.m.name} · ${mRole.role==='drawing'?'↓ Drawing in':mRole.role==='moving'?'↑ Moving toward':'⇌ Balanced'}</div>
+          <div>${mRole.desc}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+${renderScoreBreakdown(best)}
+
+<div style="border:1px solid rgba(201,168,76,0.25);margin-bottom:2.5rem">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.5rem;cursor:pointer;user-select:none" onclick="const b=this.nextElementSibling;const t=this.querySelector('.detail-toggle');b.style.display=b.style.display==='none'?'block':'none';t.textContent=b.style.display==='none'?'▼ show detail':'▲ hide detail';">
+    <span style="font-family:'Cinzel',serif;font-size:0.7rem;letter-spacing:0.25em;color:var(--gold);text-transform:uppercase">Transit & Chart Detail</span>
+    <span class="detail-toggle" style="font-size:0.7rem;color:rgba(245,240,232,0.4)">▼ show detail</span>
+  </div>
+  <div style="display:none;padding:0 1.5rem 1.5rem">
+
+<div class="section">
+  <div class="section-title">Sky at the Moment · Transit Planets</div>
+  ${renderNatal(tr)}
+  <div style="margin-top:1rem;font-size:0.88rem;font-style:italic;color:rgba(245,240,232,0.4);line-height:1.8">
+    Ascendant ${formatPos(bestAsc)} · Moon H${moonH} · Venus H${venusH} · Mars H${marsH} (${P.w.pos} chart)
+  </div>
+</div>
+
+<div class="divider">✦ &nbsp; ✦ &nbsp; ✦</div>
+
+<div class="section">
+  <div class="section-title">Transit Activations${TONE.t3==='tension'?' · Including Friction Aspects':' · Harmonious Aspects'}</div>
+  <div style="font-style:italic;font-size:0.88rem;color:rgba(245,240,232,0.38);margin-bottom:1rem">How the transiting sky strikes their natal positions at this hour</div>
+  ${transitDisp.filter(showAsp).slice(0,8).map(renderAspRow).join('')||'<div style="padding:1rem;font-style:italic;color:rgba(245,240,232,0.3)">No strong aspects at this moment</div>'}
+</div>
+
+<div class="section">
+  <div class="section-title">Natal Synastry · ${P.w.name} × ${P.m.name}</div>
+  <div style="font-style:italic;font-size:0.88rem;color:rgba(245,240,232,0.38);margin-bottom:1rem">The permanent planetary bonds between their birth positions</div>
+  ${synDisp.filter(showAsp).slice(0,6).map(renderAspRow).join('')}
+</div>
+
+<div class="divider">✦ &nbsp; ✦ &nbsp; ✦</div>
+
+<div class="section">
+  <div class="section-title">${P.w.name} · Natal Chart</div>
+  ${renderNatal(wNatal)}
+  <div style="margin-top:0.8rem;font-size:0.82rem;font-style:italic;color:rgba(245,240,232,0.32)">${MONTHS[BIRTH.wMonth]} ${BIRTH.wDay}, ${BIRTH.wYear} · ${BIRTH.wHour}:${String(BIRTH.wMin).padStart(2,'0')} ${BIRTH.wAmpm} · ${BIRTH.wCity}</div>
+</div>
+
+<div class="section">
+  <div class="section-title">${P.m.name} · Natal Chart</div>
+  ${renderNatal(mNatal)}
+  <div style="margin-top:0.8rem;font-size:0.82rem;font-style:italic;color:rgba(245,240,232,0.32)">${MONTHS[BIRTH.mMonth]} ${BIRTH.mDay}, ${BIRTH.mYear} · ${BIRTH.mHour}:${String(BIRTH.mMin).padStart(2,'0')} ${BIRTH.mAmpm} · ${BIRTH.mCity}</div>
+</div>
+
+  </div>
+</div>
+`;
+
+  if (window.Chart) startCalChart();
+}
+
+function renderCharts() {
+  document.getElementById('charts').innerHTML = `
+<div class="section" id="allTonesSection">
+  <div class="section-title">60-Day Score · All 8 Tone Combinations</div>
+  <div style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.38);margin-bottom:0.8rem">Hover to see scores · click a line to activate that tone</div>
+  <div id="allTonesMsg" style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.38);margin-bottom:0.6rem">Computing…</div>
+  <div id="allTonesLegend" style="display:flex;flex-wrap:wrap;gap:0.6rem 1.2rem;margin-bottom:0.8rem;font-size:0.75rem;color:rgba(245,240,232,0.5)"></div>
+  <div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+    <div style="position:relative;flex:1;min-width:380px;height:300px;min-height:300px">
+      <canvas id="allTonesDc" aria-label="60-day synastry score for all 8 tone combinations"></canvas>
+    </div>
+    <div id="allTonesTooltip" style="pointer-events:none;background:rgba(10,8,18,0.92);border:1px solid rgba(201,168,76,0.3);padding:8px 12px;font-family:'Cormorant Garamond',serif;font-size:12px;flex:0 0 220px;min-width:220px;min-height:24px;align-self:flex-start"></div>
+  </div>
+</div>
+
+<div class="section" id="calSection">
+  <div class="section-title">60-Day Score Calendar · <span id="calToneLabel">${toneLabel()}</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:1.2rem;margin-bottom:0.8rem;font-size:0.8rem;color:rgba(245,240,232,0.55);align-items:center">
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:#5c6bc0;display:inline-block"></span>Natal synastry baseline (fixed)</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:#8d6e63;display:inline-block"></span>Sky conditions &amp; dignity (universal)</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:#c9a84c;display:inline-block"></span>Personal transits (their charts)</span>
+  </div>
+  <div id="calMsg" style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.38);margin-bottom:0.8rem">Computing…</div>
+  <div style="position:relative;width:100%;height:260px">
+    <canvas id="calDc" aria-label="Daily stacked synastry score chart, 60 days"></canvas>
+  </div>
+  <div id="calHs" style="margin-top:2rem;display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
+      <div id="calHt" style="font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase"></div>
+      <button onclick="document.getElementById('calHs').style.display='none'" style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.1em;color:rgba(245,240,232,0.4);background:none;border:1px solid rgba(245,240,232,0.15);padding:0.2rem 0.6rem;cursor:pointer">close</button>
+    </div>
+    <div style="position:relative;width:100%;height:200px">
+      <canvas id="calHc" aria-label="Hourly stacked synastry score for selected day"></canvas>
+    </div>
+    <div id="calHb" style="margin-top:0.6rem;font-size:0.88rem;font-style:italic;color:rgba(245,240,232,0.55)"></div>
+  </div>
+</div>
+
+<div class="section" id="polaritySection">
+  <div class="section-title">Polarity Guide</div>
+  <div style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.38);margin-bottom:0.6rem">
+    Each band shows one person's dominant polarity day by day — drawing in vs moving toward vs balanced.
+    Hover for details.
+  </div>
+  <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.8rem;font-size:0.78rem;color:rgba(245,240,232,0.5);align-items:center">
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:10px;border-radius:2px;background:#64b5f6;display:inline-block"></span>Drawing in</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:10px;border-radius:2px;background:#e57373;display:inline-block"></span>Moving toward</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:10px;border-radius:2px;background:rgba(245,240,232,0.15);display:inline-block"></span>Balanced</span>
+    <span style="margin-left:0.5rem;color:rgba(245,240,232,0.3)">·</span>
+    <span style="color:rgba(245,240,232,0.45)" id="polarityLegendNote"></span>
+  </div>
+  <div id="polarityMsg" style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.38);margin-bottom:0.6rem">Computing…</div>
+  <canvas id="polarityCanvas" style="width:100%;display:block" aria-label="60-day polarity tracker showing drawing-in vs moving-toward for each person"></canvas>
+  <div id="polarityTooltip" style="min-height:40px;margin-top:8px;padding:8px 12px;background:rgba(10,8,18,0.92);border:1px solid rgba(201,168,76,0.3);font-family:'Cormorant Garamond',serif;font-size:12px;display:none"></div>
+</div>`;
+}
+
+function setTone(key, val) {
+  TONE[key] = val;
+  render();
+  var lbl = document.getElementById('calToneLabel');
+  if (lbl) lbl.textContent = toneLabel();
+  setTimeout(function() { if (window.Chart) { startCalChart(); } }, 50);
+}
+
+render();
+renderCharts();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ALL-TONES LINE CHART
+// ═══════════════════════════════════════════════════════════════
+
+var allTonesTimer = null;
+
+var TONE_COMBOS = [
+  {t1:'martial',  t2:'deep',    t3:'harmony'},
+  {t1:'martial',  t2:'deep',    t3:'tension'},
+  {t1:'martial',  t2:'playful', t3:'harmony'},
+  {t1:'martial',  t2:'playful', t3:'tension'},
+  {t1:'venusian', t2:'deep',    t3:'harmony'},
+  {t1:'venusian', t2:'deep',    t3:'tension'},
+  {t1:'venusian', t2:'playful', t3:'harmony'},
+  {t1:'venusian', t2:'playful', t3:'tension'},
+];
+
+function toneComboLabel(tc) {
+  return (tc.t1==='martial'?'Urgent':'Tender') + ' · ' +
+         (tc.t2==='deep'?'Deep':'Playful') + ' · ' +
+         (tc.t3==='tension'?'Tension':'Harmony');
+}
+
+var TONE_COLORS = [
+  '#c0392b','#e74c3c','#e67e22','#f39c12',
+  '#2980b9','#8e44ad','#27ae60','#1abc9c',
+];
+
+function startAllTonesChart() {
+  if (allTonesTimer) clearTimeout(allTonesTimer);
+
+  var canvasEl = document.getElementById('allTonesDc');
+  if (!canvasEl) return;
+  var oldChart = Chart.getChart(canvasEl);
+  if (oldChart) oldChart.destroy();
+
+  function scoreForTone(jd, tc) {
+    var saved = {t1:TONE.t1, t2:TONE.t2, t3:TONE.t3};
+    TONE.t1 = tc.t1; TONE.t2 = tc.t2; TONE.t3 = tc.t3;
+    var res = scoreDateTime(jd, wNatal, mNatal, BIRTH.wLat, BIRTH.wLng);
+    TONE.t1 = saved.t1; TONE.t2 = saved.t2; TONE.t3 = saved.t3;
+    return res.total;
+  }
+
+  var BASE2 = jdn(2026,4,23,0,0);
+  var labels = [];
+  for (var d=0; d<60; d++) {
+    var jd0 = BASE2+d;
+    var c = (function(jd){
+      var z=Math.floor(jd+0.5),A=z;
+      if(z>=2299161){var al=Math.floor((z-1867216.25)/36524.25);A=z+1+al-Math.floor(al/4);}
+      var B=A+1524,C=Math.floor((B-122.1)/365.25),D2=Math.floor(365.25*C),E=Math.floor((B-D2)/30.6001),mo=E<14?E-1:E-13;
+      return{d:B-D2-Math.floor(30.6001*E),m:mo};
+    })(jd0);
+    var WD=['Su','Mo','Tu','We','Th','Fr','Sa'],MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    labels.push(WD[Math.floor(jd0+1.5)%7]+' '+MN[c.m]+' '+c.d);
+  }
+
+  var datasets = TONE_COMBOS.map(function(tc, i) {
+    var isActive = (tc.t1===TONE.t1 && tc.t2===TONE.t2 && tc.t3===TONE.t3);
+    return {
+      label: toneComboLabel(tc),
+      data: [],
+      borderColor: TONE_COLORS[i],
+      backgroundColor: 'transparent',
+      borderWidth: isActive ? 2.5 : 1.2,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: TONE_COLORS[i],
+      tension: 0.45,
+      borderDash: isActive ? [] : [4,3],
+      order: isActive ? 0 : 1,
+    };
+  });
+
+  var axC='rgba(201,168,76,0.25)',grC='rgba(201,168,76,0.08)',lbC='rgba(245,240,232,0.45)';
+
+  var ctx = canvasEl.getContext('2d');
+  var chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 0 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: false,
+          external: function(context) {
+            var tooltipEl = document.getElementById('allTonesTooltip');
+            if (!tooltipEl) return;
+            var tooltip = context.tooltip;
+            if (tooltip.opacity === 0) { tooltipEl.innerHTML = ''; return; }
+            var date = tooltip.title && tooltip.title[0] ? '<span style="color:#e8d49a;margin-right:12px;font-size:11px;letter-spacing:0.05em">' + tooltip.title[0] + '</span>' : '';
+            var items = tooltip.dataPoints ? tooltip.dataPoints.slice().sort(function(a,b){return b.raw-a.raw;}) : [];
+            var rows = items.map(function(item) {
+              var isActive = TONE_COMBOS[item.datasetIndex].t1===TONE.t1 && TONE_COMBOS[item.datasetIndex].t2===TONE.t2 && TONE_COMBOS[item.datasetIndex].t3===TONE.t3;
+              return '<div style="color:'+TONE_COLORS[item.datasetIndex]+';line-height:1.6">' + item.dataset.label + (isActive?' ★':'') + ' <strong style="color:rgba(245,240,232,0.9)">' + item.raw + '</strong></div>';
+            }).join('');
+            tooltipEl.innerHTML = date + rows;
+          }
+        }
+      },
+      scales: {
+        x: { ticks:{color:lbC,font:{size:10},maxRotation:55,autoSkip:true,maxTicksLimit:20}, grid:{color:grC}, border:{color:axC} },
+        y: { min:0, max:100, ticks:{color:lbC,font:{size:11},stepSize:20}, grid:{color:grC}, border:{color:axC}, title:{display:true,text:'Score / 100',color:lbC,font:{size:11}} }
+      },
+      onClick: function(evt, elements) {
+        var canvasRect = canvasEl.getBoundingClientRect();
+        var clickY = evt.native.clientY - canvasRect.top;
+        var xIdx = elements.length ? elements[0].index : -1;
+        if (xIdx < 0) return;
+        var bestDsIdx = 0, bestDist = Infinity;
+        for (var di = 0; di < datasets.length; di++) {
+          var meta = chart.getDatasetMeta(di);
+          if (!meta.data[xIdx]) continue;
+          var py = meta.data[xIdx].y;
+          var dist = Math.abs(py - clickY);
+          if (dist < bestDist) { bestDist = dist; bestDsIdx = di; }
+        }
+        var tc = TONE_COMBOS[bestDsIdx];
+        if (tc.t1===TONE.t1 && tc.t2===TONE.t2 && tc.t3===TONE.t3) return;
+        TONE.t1 = tc.t1; TONE.t2 = tc.t2; TONE.t3 = tc.t3;
+        document.querySelectorAll('.tone-btn').forEach(function(btn) { btn.classList.remove('active'); });
+        document.querySelectorAll('.tone-btn').forEach(function(btn) {
+          var text = btn.textContent;
+          if ((TONE.t1==='martial'  && text.indexOf('Urgent')===0)  ||
+              (TONE.t1==='venusian' && text.indexOf('Tender')===0)  ||
+              (TONE.t2==='deep'     && text.indexOf('Deep')===0)    ||
+              (TONE.t2==='playful'  && text.indexOf('Playful')===0) ||
+              (TONE.t3==='tension'  && text.indexOf('Tension')===0) ||
+              (TONE.t3==='harmony'  && text.indexOf('Pure')===0)) {
+            btn.classList.add('active');
+          }
+        });
+        var lbl = document.getElementById('calToneLabel');
+        if (lbl) lbl.textContent = toneLabel();
+        if (window.Chart) startCalChart();
+        datasets.forEach(function(ds, i) {
+          var isActive = TONE_COMBOS[i].t1===TONE.t1 && TONE_COMBOS[i].t2===TONE.t2 && TONE_COMBOS[i].t3===TONE.t3;
+          ds.borderWidth = isActive ? 2.5 : 1.2;
+          ds.borderDash  = isActive ? [] : [4,3];
+          ds.order       = isActive ? 0 : 1;
+        });
+        chart.update('none');
+        buildLegend();
+      },
+      onHover: function(evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      }
+    }
+  });
+
+  function buildLegend() {
+    var legendEl = document.getElementById('allTonesLegend');
+    if (!legendEl) return;
+    legendEl.innerHTML = TONE_COMBOS.map(function(tc,i){
+      var isActive = tc.t1===TONE.t1 && tc.t2===TONE.t2 && tc.t3===TONE.t3;
+      return '<span style="display:flex;align-items:center;gap:5px;opacity:'+(isActive?'1':'0.55')+'">' +
+        '<span style="width:18px;height:2px;background:'+TONE_COLORS[i]+';display:inline-block;border-radius:1px'+(isActive?'':';opacity:0.6')+'"></span>' +
+        '<span>'+toneComboLabel(tc)+(isActive?' ★':'')+'</span></span>';
+    }).join('');
+  }
+  buildLegend();
+
+  var day = 0;
+  function computeAllDay() {
+    if (!document.getElementById('allTonesDc')) return;
+    if (day >= 60) {
+      document.getElementById('allTonesMsg').textContent = 'Hover to see scores · active tone marked ★';
+      return;
+    }
+    var jd0 = BASE2 + day;
+    for (var ci = 0; ci < TONE_COMBOS.length; ci++) {
+      var best = -1;
+      for (var h = 17; h <= 22; h++) {
+        var s = scoreForTone(jd0 + h/24, TONE_COMBOS[ci]);
+        if (s > best) best = s;
+      }
+      datasets[ci].data.push(parseFloat(best.toFixed(1)));
+    }
+    chart.update('none');
+    day++;
+    document.getElementById('allTonesMsg').textContent = 'Computing day ' + day + ' of 60…';
+    allTonesTimer = setTimeout(computeAllDay, 0);
+  }
+
+  allTonesTimer = setTimeout(computeAllDay, 50);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STACKED CALENDAR CHART
+// ═══════════════════════════════════════════════════════════════
+var calTimer = null;
+
+function startCalChart() {
+  if (calTimer) clearTimeout(calTimer);
+  var hs = document.getElementById('calHs');
+  if (hs) hs.style.display = 'none';
+
+  var synFixed = (function(){
+    var synB=0;
+    var SP=[['Venus','Mars',10],['Mars','Venus',10],['Sun','Moon',6],['Moon','Sun',6],['Venus','Venus',5],['Mars','Mars',4],['Sun','Venus',4],['Venus','Sun',4],['Moon','Venus',3],['Moon','Mars',3]];
+    for(var i=0;i<SP.length;i++){var wl=wNatal[SP[i][0]],ml=mNatal[SP[i][1]],bw=SP[i][2];if(wl===undefined||ml===undefined)continue;var asp=findAspect(wl,ml);if(!asp)continue;var q=(['harmony','fusion','ease'].includes(asp.quality))?1:(asp.quality==='tension'||asp.quality==='friction')?TONE.t3==='tension'?0.5:0:0.5;synB+=bw*q*orbFactor(asp.orbRatio);}
+    return parseFloat(Math.min(synB,20).toFixed(1));
+  })();
+
+  function score3(jd){
+    var res = scoreDateTime(jd, wNatal, mNatal, BIRTH.wLat, BIRTH.wLng);
+    var personal=0, sky=0;
+    for (var ci=0; ci<res.categories.length; ci++) {
+      var cat = res.categories[ci];
+      if (cat.name.indexOf('III ·')===0 || cat.name.indexOf('VI ·')===0) continue;
+      for (var ii=0; ii<cat.items.length; ii++) {
+        var item = cat.items[ii];
+        if (item.pts <= 0) {
+          if (item.isUniversal === false) personal += item.pts;
+          else sky += item.pts;
+        } else {
+          if (item.isUniversal === false) personal += item.pts;
+          else if (item.isUniversal === true) sky += item.pts;
+        }
+      }
+    }
+    personal = parseFloat(Math.min(Math.max(personal, 0), 65).toFixed(1));
+    var skyAdj = parseFloat(Math.max(sky, 0).toFixed(1));
+    if (sky < 0) { personal = parseFloat(Math.max(personal + sky, 0).toFixed(1)); skyAdj = 0; }
+    return{personal:personal, sky:skyAdj, natal:synFixed, total:res.total};
+  }
+
+  function jdCal(jd){var z=Math.floor(jd+0.5),A=z;if(z>=2299161){var al=Math.floor((z-1867216.25)/36524.25);A=z+1+al-Math.floor(al/4);}var B=A+1524,C=Math.floor((B-122.1)/365.25),D2=Math.floor(365.25*C),E=Math.floor((B-D2)/30.6001),mo=E<14?E-1:E-13;return{d:B-D2-Math.floor(30.6001*E),m:mo};}
+  var WD2=['Su','Mo','Tu','We','Th','Fr','Sa'],MN3=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function lbl2(jd){var c=jdCal(jd);return WD2[Math.floor(jd+1.5)%7]+' '+MN3[c.m]+' '+c.d;}
+  function lblFull2(jd){var c=jdCal(jd);return MN3[c.m]+' '+c.d+', 2026';}
+
+  var C_NATAL='#5c6bc0',C_SKY='#8d6e63',C_PERS='#c9a84c';
+  var axC='rgba(201,168,76,0.25)',grC='rgba(201,168,76,0.08)',lbC='rgba(245,240,232,0.45)';
+
+  var BASE2=jdn(2026,4,23,0,0);
+  var cData={labels:[],datasets:[
+    {label:'Natal synastry baseline',data:[],backgroundColor:C_NATAL,borderWidth:0,stack:'s'},
+    {label:'Sky conditions & dignity',data:[],backgroundColor:C_SKY,borderWidth:0,stack:'s'},
+    {label:'Personal transits',data:[],backgroundColor:C_PERS,borderWidth:0,stack:'s'}
+  ]};
+  var djds2=[],tips2=[],hChart2=null;
+
+  var canvasEl=document.getElementById('calDc');
+  if(!canvasEl)return;
+  var oldChart=Chart.getChart(canvasEl);
+  if(oldChart)oldChart.destroy();
+
+  var ctx2=canvasEl.getContext('2d');
+  var dChart2=new Chart(ctx2,{
+    type:'bar',data:cData,
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:200},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:function(i){return cData.labels[i[0].dataIndex];},
+            afterTitle:function(i){var t=tips2[i[0].dataIndex];return t?'Total: '+t.total+' / 100':'';},
+            label:function(item){var t=tips2[item.dataIndex];if(!t)return'';if(item.datasetIndex===0)return' Natal baseline: '+t.natal;if(item.datasetIndex===1)return' Sky conditions: '+t.sky;return' Personal transits: '+t.personal;},
+            footer:function(){return'Click for hourly breakdown';}
+          },
+          backgroundColor:'rgba(10,8,18,0.92)',titleColor:'#e8d49a',bodyColor:'rgba(245,240,232,0.75)',footerColor:'rgba(245,240,232,0.35)',borderColor:'rgba(201,168,76,0.3)',borderWidth:1,footerFont:{size:10}
+        }
+      },
+      scales:{
+        x:{stacked:true,ticks:{color:lbC,font:{size:10},maxRotation:55,autoSkip:true,maxTicksLimit:20},grid:{color:grC},border:{color:axC}},
+        y:{stacked:true,min:0,max:100,ticks:{color:lbC,font:{size:11},stepSize:20},grid:{color:grC},border:{color:axC},title:{display:true,text:'Score / 100',color:lbC,font:{size:11}}}
+      },
+      onClick:function(evt,els){if(!els.length)return;showCalHourly(djds2[els[0].index]);},
+      onHover:function(evt,els){evt.native.target.style.cursor=els.length?'pointer':'default';}
+    }
+  });
+
+  var calDay=0;
+  function computeCalDay(){
+    if(!document.getElementById('calDc')){return;}
+    if(calDay>=60){document.getElementById('calMsg').textContent='Click any bar for hourly breakdown · tone: '+toneLabel();return;}
+    var jd0=BASE2+calDay,best=null;
+    for(var h=17;h<=22;h++){var s=score3(jd0+h/24);if(!best||s.total>best.total)best=s;}
+    cData.labels.push(lbl2(jd0));
+    cData.datasets[0].data.push(best.natal);
+    cData.datasets[1].data.push(best.sky);
+    cData.datasets[2].data.push(best.personal);
+    djds2.push(jd0);tips2.push(best);
+    dChart2.update('active');
+    calDay++;
+    document.getElementById('calMsg').textContent='Computing day '+calDay+' of 60…';
+    calTimer=setTimeout(computeCalDay,0);
+  }
+
+  function showCalHourly(baseJD){
+    var hs=document.getElementById('calHs');
+    document.getElementById('calHt').textContent='Hourly · '+lblFull2(baseJD);
+    hs.style.display='block';
+    var hl=[],hN=[],hS=[],hP=[],hT=[],bestTotal=-1,bestH=-1;
+    for(var lh=7;lh<=22;lh++){
+      var utcH=lh+7,dayOff=utcH>=24?1:0,jd=baseJD+dayOff+(utcH%24)/24,s=score3(jd);
+      hl.push(lh===12?'12pm':lh>12?(lh-12)+'pm':lh+'am');
+      hN.push(s.natal);hS.push(s.sky);hP.push(s.personal);hT.push(s);
+      if(s.total>bestTotal){bestTotal=s.total;bestH=lh;}
+    }
+    var bStr=bestH===12?'12:00 PM':bestH>12?(bestH-12)+':00 PM':bestH+':00 AM';
+    document.getElementById('calHb').innerHTML='Best hour: <strong style="color:var(--gold-light)">'+bStr+' PDT</strong> &nbsp;·&nbsp; Total score <strong style="color:var(--gold-light)">'+bestTotal+'</strong>';
+    var hCtx=document.getElementById('calHc').getContext('2d');
+    var existingHourly=Chart.getChart(document.getElementById('calHc'));
+    if(existingHourly)existingHourly.destroy();
+    hChart2=new Chart(hCtx,{
+      type:'bar',
+      data:{labels:hl,datasets:[
+        {label:'Natal',data:hN,backgroundColor:C_NATAL,borderWidth:0,stack:'s'},
+        {label:'Sky',data:hS,backgroundColor:C_SKY,borderWidth:0,stack:'s'},
+        {label:'Personal',data:hP,backgroundColor:C_PERS,borderWidth:0,stack:'s'}
+      ]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{title:function(i){return hl[i[0].dataIndex];},afterTitle:function(i){var t=hT[i[0].dataIndex];return'Total: '+t.total+' / 100';},label:function(item){var t=hT[item.dataIndex];if(!t)return'';if(item.datasetIndex===0)return' Natal: '+t.natal;if(item.datasetIndex===1)return' Sky: '+t.sky;return' Personal: '+t.personal;}},backgroundColor:'rgba(10,8,18,0.92)',titleColor:'#e8d49a',bodyColor:'rgba(245,240,232,0.75)',borderColor:'rgba(201,168,76,0.3)',borderWidth:1}},
+        scales:{
+          x:{stacked:true,ticks:{color:lbC,font:{size:10},maxRotation:45,autoSkip:false},grid:{color:grC},border:{color:axC}},
+          y:{stacked:true,min:0,max:100,ticks:{color:lbC,font:{size:11},stepSize:20},grid:{color:grC},border:{color:axC},title:{display:true,text:'Score / 100',color:lbC,font:{size:11}}}
+        }
+      }
+    });
+    hs.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  calTimer=setTimeout(computeCalDay,50);
+}
+
+setTimeout(startCalChart, 300);
+setTimeout(startAllTonesChart, 400);
+setTimeout(startPolarityChart, 500);
+
+// ═══════════════════════════════════════════════════════════════
+// POLARITY TRACKER
+// ═══════════════════════════════════════════════════════════════
+
+var polarityTimer = null;
+
+function startPolarityChart() {
+  if (polarityTimer) clearTimeout(polarityTimer);
+
+  var canvas = document.getElementById('polarityCanvas');
+  if (!canvas) return;
+
+  var DAYS = 60;
+  var BASE2 = jdn(2026,4,23,0,0);
+
+  function polScore(jd, natalChart, otherNatal) {
+    var tr = computePlanets(jd);
+    var drawIn=0, moveOut=0;
+    var a1=findAspect(tr.Mars, natalChart.Venus);
+    if(a1&&['fusion','harmony','ease'].indexOf(a1.quality)>=0) drawIn+=10*orbFactor(a1.orbRatio);
+    var a2=findAspect(tr.Venus, natalChart.Mars);
+    if(a2&&['fusion','harmony','ease'].indexOf(a2.quality)>=0) moveOut+=10*orbFactor(a2.orbRatio);
+    drawIn += (dignityOf('Venus', natalChart.Venus).mod - 1) * 8;
+    moveOut += (dignityOf('Mars', natalChart.Mars).mod - 1) * 8;
+    var a3=findAspect(natalChart.Venus, otherNatal.Mars);
+    if(a3&&['fusion','harmony','ease'].indexOf(a3.quality)>=0) drawIn+=5*orbFactor(a3.orbRatio);
+    var a4=findAspect(natalChart.Mars, otherNatal.Venus);
+    if(a4&&['fusion','harmony','ease'].indexOf(a4.quality)>=0) moveOut+=5*orbFactor(a4.orbRatio);
+    return {drawIn:drawIn, moveOut:moveOut};
+  }
+
+  function polarityRole(pol) {
+    var diff = pol.drawIn - pol.moveOut;
+    if (Math.abs(diff) < 1.5) return 'balanced';
+    return diff > 0 ? 'drawing' : 'moving';
+  }
+
+  function roleColor(role, alpha) {
+    if (role==='drawing')  return 'rgba(100,181,246,'+alpha+')';
+    if (role==='moving')   return 'rgba(229,115,115,'+alpha+')';
+    return 'rgba(245,240,232,0.12)';
+  }
+
+  function jdCal(jd){var z=Math.floor(jd+0.5),A=z;if(z>=2299161){var al=Math.floor((z-1867216.25)/36524.25);A=z+1+al-Math.floor(al/4);}var B=A+1524,C=Math.floor((B-122.1)/365.25),D2=Math.floor(365.25*C),E=Math.floor((B-D2)/30.6001),mo=E<14?E-1:E-13;return{d:B-D2-Math.floor(30.6001*E),m:mo};}
+  var MN4=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var WD4=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  function dayLabel(jd){var c=jdCal(jd);return WD4[Math.floor(jd+1.5)%7]+' '+MN4[c.m]+' '+c.d;}
+
+  var legendNote = document.getElementById('polarityLegendNote');
+  if (legendNote) {
+    if (P._useGendered) {
+      legendNote.textContent = 'When she draws in and he moves toward — or vice versa — the polarity is complementary.';
+    } else {
+      legendNote.textContent = 'When one draws in while the other moves toward, the polarity is complementary.';
+    }
+  }
+
+  var BAND_H = 44;
+  var GAP     = 20;
+  var LABEL_W = 90;
+  var AXIS_H  = 30;
+  var TICK_EVERY = 7;
+
+  var totalH = BAND_H*2 + GAP + AXIS_H + 16;
+  canvas.height = totalH;
+  canvas.style.height = totalH + 'px';
+
+  var data = [];
+
+  function redraw() {
+    var W = canvas.offsetWidth || 800;
+    canvas.width = W;
+    var chartW = W - LABEL_W;
+    var dayW = chartW / DAYS;
+
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, totalH);
+
+    var bands = [
+      { y:8,            label: P._useGendered ? P.w.sub   : P.w.name, natal: wNatal, other: mNatal, key:'w' },
+      { y:8+BAND_H+GAP, label: P._useGendered ? P.m.sub   : P.m.name, natal: mNatal, other: wNatal, key:'m' },
+    ];
+
+    for (var bi=0; bi<bands.length; bi++) {
+      var band = bands[bi];
+      var by = band.y;
+
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.strokeStyle = 'rgba(201,168,76,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(LABEL_W, by, chartW, BAND_H, 3) : ctx.rect(LABEL_W, by, chartW, BAND_H);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = 'rgba(232,212,154,0.7)';
+      ctx.font = '11px "Cinzel", serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(band.label.split(' (')[0].split(' ').slice(0,2).join(' '), LABEL_W-8, by+BAND_H/2);
+
+      for (var di=0; di<data.length; di++) {
+        var day = data[di];
+        var role = band.key==='w' ? day.wRole : day.mRole;
+        var pol  = band.key==='w' ? day.wPol  : day.mPol;
+        var x = LABEL_W + di*dayW;
+
+        ctx.fillStyle = roleColor(role, 0.75);
+        ctx.fillRect(x+0.5, by+1, dayW-1, BAND_H-2);
+
+        var intensity = role==='drawing' ? pol.drawIn : role==='moving' ? pol.moveOut : 0;
+        var stripeH = Math.max(0, Math.min(BAND_H-2, (intensity/20) * (BAND_H-2)));
+        ctx.fillStyle = roleColor(role, 0.35);
+        ctx.fillRect(x+0.5, by+1, dayW-1, stripeH);
+      }
+
+      ctx.strokeStyle = 'rgba(201,168,76,0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(LABEL_W, by); ctx.lineTo(W, by);
+      ctx.moveTo(LABEL_W, by+BAND_H); ctx.lineTo(W, by+BAND_H);
+      ctx.stroke();
+    }
+
+    var axisY = 8 + BAND_H*2 + GAP + 8;
+    ctx.fillStyle = 'rgba(245,240,232,0.35)';
+    ctx.font = '9px "Cinzel", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (var di2=0; di2<data.length; di2+=TICK_EVERY) {
+      var x2 = LABEL_W + di2*dayW + dayW/2;
+      ctx.fillStyle = 'rgba(201,168,76,0.3)';
+      ctx.fillRect(x2, 8, 1, BAND_H*2+GAP);
+      ctx.fillStyle = 'rgba(245,240,232,0.35)';
+      ctx.fillText(data[di2].label, x2, axisY);
+    }
+  }
+
+  canvas.onmousemove = function(evt) {
+    var rect = canvas.getBoundingClientRect();
+    var mx = evt.clientX - rect.left;
+    var W = canvas.offsetWidth || 800;
+    var chartW = W - LABEL_W;
+    var dayW = chartW / DAYS;
+    var di = Math.floor((mx - LABEL_W) / dayW);
+    if (di < 0 || di >= data.length) {
+      document.getElementById('polarityTooltip').style.display='none';
+      return;
+    }
+    var day = data[di];
+    var tip = document.getElementById('polarityTooltip');
+    tip.style.display = 'block';
+    tip.innerHTML =
+      '<span style="color:#e8d49a;font-size:11px;letter-spacing:0.05em">' + day.label + '</span><br>' +
+      '<span style="color:'+roleColor(day.wRole,1)+'">' + (P._useGendered ? P.w.sub : P.w.name) + ': ' +
+        (day.wRole==='drawing'?'drawing in':day.wRole==='moving'?'moving toward':'balanced') +
+        ' (' + Math.abs(day.wPol.drawIn-day.wPol.moveOut).toFixed(1) + ')' +
+      '</span>' +
+      '<span style="color:rgba(245,240,232,0.3)"> · </span>' +
+      '<span style="color:'+roleColor(day.mRole,1)+'">' + (P._useGendered ? P.m.sub : P.m.name) + ': ' +
+        (day.mRole==='drawing'?'drawing in':day.mRole==='moving'?'moving toward':'balanced') +
+        ' (' + Math.abs(day.mPol.drawIn-day.mPol.moveOut).toFixed(1) + ')' +
+      '</span>';
+  };
+  canvas.onmouseleave = function() {
+    document.getElementById('polarityTooltip').style.display='none';
+  };
+
+  var day=0;
+  function computeDay(){
+    if(!document.getElementById('polarityCanvas'))return;
+    if(day>=DAYS){
+      document.getElementById('polarityMsg').textContent='Hover for daily detail.';
+      redraw();
+      return;
+    }
+    var jd0 = BASE2+day;
+    var jd = jd0 + 19/24;
+    var wPol = polScore(jd, wNatal, mNatal);
+    var mPol = polScore(jd, mNatal, wNatal);
+    data.push({
+      jd: jd0, label: dayLabel(jd0),
+      wRole: polarityRole(wPol), mRole: polarityRole(mPol),
+      wPol: wPol, mPol: mPol
+    });
+    redraw();
+    day++;
+    document.getElementById('polarityMsg').textContent='Computing day '+day+' of '+DAYS+'…';
+    polarityTimer = setTimeout(computeDay, 0);
+  }
+
+  window.addEventListener('resize', redraw);
+
+  polarityTimer = setTimeout(computeDay, 50);
+}
+</script>
+
+</body>
+</html>
