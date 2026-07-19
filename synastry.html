@@ -233,6 +233,25 @@ function orbFactor(r){return Math.cos(r*Math.PI/2);}
 // ═══════════════════════════════════════════════════════════════
 const TONE = { t1:'martial', t2:'deep', t3:'harmony' };
 
+// The eight tonal readings. The optimal moment is the single highest score
+// across all of them; TONE is then pinned to the winning combination.
+const TONE_COMBOS = [
+  {t1:'martial',  t2:'deep',    t3:'harmony'},
+  {t1:'martial',  t2:'deep',    t3:'tension'},
+  {t1:'martial',  t2:'playful', t3:'harmony'},
+  {t1:'martial',  t2:'playful', t3:'tension'},
+  {t1:'venusian', t2:'deep',    t3:'harmony'},
+  {t1:'venusian', t2:'deep',    t3:'tension'},
+  {t1:'venusian', t2:'playful', t3:'harmony'},
+  {t1:'venusian', t2:'playful', t3:'tension'},
+];
+
+function toneComboLabel(tc) {
+  return (tc.t1==='martial'?'Urgent':'Tender') + ' · ' +
+         (tc.t2==='deep'?'Deep':'Playful') + ' · ' +
+         (tc.t3==='tension'?'Tension':'Harmony');
+}
+
 function toneWeights() {
   const w = {
     marsBonus:   1,
@@ -789,14 +808,23 @@ function currentBaseJD() {
 
 function findBest() {
   const BASE=currentBaseJD();
-  let best={total:-Infinity};
-  for (let d=0;d<60;d++) {
-    for (let h=17;h<=21;h++) {
-      const jd=BASE+d+h/24;
-      const result=scoreDateTime(jd,wNatal,mNatal,BIRTH.wLat,BIRTH.wLng);
-      if (result.total>best.total){best=result;best.jd=jd;}
+  let best={total:-Infinity}, bestTone=null;
+  // Scan every date/hour under each of the eight tones; the optimal moment is
+  // the single highest score regardless of tone.
+  for (const tc of TONE_COMBOS) {
+    TONE.t1=tc.t1; TONE.t2=tc.t2; TONE.t3=tc.t3;
+    for (let d=0;d<60;d++) {
+      for (let h=17;h<=21;h++) {
+        const jd=BASE+d+h/24;
+        const result=scoreDateTime(jd,wNatal,mNatal,BIRTH.wLat,BIRTH.wLng);
+        if (result.total>best.total){best=result;best.jd=jd;bestTone={t1:tc.t1,t2:tc.t2,t3:tc.t3};}
+      }
     }
   }
+  // Pin the global tone to the winning combination so the whole reading
+  // (score breakdown, houses, verdict, charts) reflects that peak moment.
+  TONE.t1=bestTone.t1; TONE.t2=bestTone.t2; TONE.t3=bestTone.t3;
+  best.tone=bestTone;
   return best;
 }
 
@@ -963,38 +991,20 @@ function render() {
 
 ${renderBirthPanel()}
 
-<div class="tone-panel">
-  <div class="tone-panel-title">Tone of the Encounter</div>
-  <div class="tone-row">
-    <div class="tone-question">Passionate & urgent, or slow & tender?</div>
-    <div class="tone-toggle">
-      <button class="tone-btn ${TONE.t1==='martial'?'active':''}" onclick="setTone('t1','martial')">Urgent · Mars</button>
-      <div class="tone-sep"></div>
-      <button class="tone-btn ${TONE.t1==='venusian'?'active':''}" onclick="setTone('t1','venusian')">Tender · Venus</button>
-    </div>
-  </div>
-  <div class="tone-row">
-    <div class="tone-question">Deep & transformative, or playful & romantic?</div>
-    <div class="tone-toggle">
-      <button class="tone-btn ${TONE.t2==='deep'?'active':''}" onclick="setTone('t2','deep')">Deep · 8th house</button>
-      <div class="tone-sep"></div>
-      <button class="tone-btn ${TONE.t2==='playful'?'active':''}" onclick="setTone('t2','playful')">Playful · 5th house</button>
-    </div>
-  </div>
-  <div class="tone-row">
-    <div class="tone-question">Tension in the relationship, or pure harmony?</div>
-    <div class="tone-toggle">
-      <button class="tone-btn ${TONE.t3==='tension'?'active':''}" onclick="setTone('t3','tension')">Tension · Friction</button>
-      <div class="tone-sep"></div>
-      <button class="tone-btn ${TONE.t3==='harmony'?'active':''}" onclick="setTone('t3','harmony')">Pure Harmony</button>
-    </div>
-  </div>
-</div>
-
 <div class="moment-box section">
-  <div class="moment-label">The Optimal Moment · ${toneLabel()}</div>
+  <div class="moment-label">The Optimal Moment · Peak Across All Eight Tones</div>
   <div class="moment-date">${dow}, ${MONTHS[bd.month]} ${bd.day}, ${bd.year} · ${fmtTime(bd.hour,bd.min)}</div>
   <div class="moment-sub">Berkeley, California · Asc ${formatPos(bestAsc)}</div>
+  <div style="margin-top:1.1rem;display:flex;flex-wrap:wrap;gap:2rem;align-items:flex-end">
+    <div>
+      <div style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;margin-bottom:0.2rem">Maximum Score</div>
+      <div style="font-size:2.1rem;font-weight:300;color:var(--gold-light);line-height:1">${best.total}<span style="font-size:1rem;color:rgba(245,240,232,0.4)"> / 100</span></div>
+    </div>
+    <div>
+      <div style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;margin-bottom:0.2rem">Under the Tone</div>
+      <div style="font-size:1.15rem;font-style:italic;color:var(--gold-light);line-height:1.2">${toneLabel()}</div>
+    </div>
+  </div>
   ${(()=>{
     const rxFlags = Object.entries(best.rx||{}).filter(([,v])=>v).map(([k])=>k+'℞');
     if (!rxFlags.length) return '';
@@ -1008,8 +1018,9 @@ ${renderBirthPanel()}
   <div class="verdict-title">The Reading</div>
   <div class="verdict-text">
     On ${dow}, ${MONTHS[bd.month]} ${bd.day}, at ${fmtTime(bd.hour,bd.min)},
-    the sky assembles what these charts have been building toward —
-    weighted now for a ${toneLabel().toLowerCase()} encounter.
+    the sky assembles what these charts have been building toward.
+    Of all eight tonal readings, this hour scores highest — and it falls under
+    a ${toneLabel().toLowerCase()} encounter.
     Each point is earned by doctrine. The stars do not command. They only illuminate.
   </div>
   <div style="margin-top:1.2rem;font-style:italic;font-size:1rem;color:rgba(232,212,154,0.7);line-height:1.6">
@@ -1161,14 +1172,6 @@ function renderCharts() {
 </div>`;
 }
 
-function setTone(key, val) {
-  TONE[key] = val;
-  render();
-  var lbl = document.getElementById('calToneLabel');
-  if (lbl) lbl.textContent = toneLabel();
-  setTimeout(function() { if (window.Chart) { startCalChart(); } }, 50);
-}
-
 render();
 renderCharts();
 </script>
@@ -1181,23 +1184,7 @@ renderCharts();
 // ═══════════════════════════════════════════════════════════════
 
 var allTonesTimer = null;
-
-var TONE_COMBOS = [
-  {t1:'martial',  t2:'deep',    t3:'harmony'},
-  {t1:'martial',  t2:'deep',    t3:'tension'},
-  {t1:'martial',  t2:'playful', t3:'harmony'},
-  {t1:'martial',  t2:'playful', t3:'tension'},
-  {t1:'venusian', t2:'deep',    t3:'harmony'},
-  {t1:'venusian', t2:'deep',    t3:'tension'},
-  {t1:'venusian', t2:'playful', t3:'harmony'},
-  {t1:'venusian', t2:'playful', t3:'tension'},
-];
-
-function toneComboLabel(tc) {
-  return (tc.t1==='martial'?'Urgent':'Tender') + ' · ' +
-         (tc.t2==='deep'?'Deep':'Playful') + ' · ' +
-         (tc.t3==='tension'?'Tension':'Harmony');
-}
+// TONE_COMBOS and toneComboLabel() are defined in the first script block.
 
 var TONE_COLORS = [
   '#c0392b','#e74c3c','#e67e22','#f39c12',
@@ -1299,19 +1286,9 @@ function startAllTonesChart() {
         }
         var tc = TONE_COMBOS[bestDsIdx];
         if (tc.t1===TONE.t1 && tc.t2===TONE.t2 && tc.t3===TONE.t3) return;
+        // Selecting a tone re-focuses the chart highlight and the calendar
+        // below. The optimal-moment reading stays pinned to the global peak.
         TONE.t1 = tc.t1; TONE.t2 = tc.t2; TONE.t3 = tc.t3;
-        document.querySelectorAll('.tone-btn').forEach(function(btn) { btn.classList.remove('active'); });
-        document.querySelectorAll('.tone-btn').forEach(function(btn) {
-          var text = btn.textContent;
-          if ((TONE.t1==='martial'  && text.indexOf('Urgent')===0)  ||
-              (TONE.t1==='venusian' && text.indexOf('Tender')===0)  ||
-              (TONE.t2==='deep'     && text.indexOf('Deep')===0)    ||
-              (TONE.t2==='playful'  && text.indexOf('Playful')===0) ||
-              (TONE.t3==='tension'  && text.indexOf('Tension')===0) ||
-              (TONE.t3==='harmony'  && text.indexOf('Pure')===0)) {
-            btn.classList.add('active');
-          }
-        });
         var lbl = document.getElementById('calToneLabel');
         if (lbl) lbl.textContent = toneLabel();
         if (window.Chart) startCalChart();
