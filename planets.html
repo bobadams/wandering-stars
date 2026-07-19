@@ -40,6 +40,9 @@
   #dateLine{ font-family:Cinzel,serif; font-size:clamp(1.05rem,3vw,1.45rem); letter-spacing:.05em; color:var(--ink); }
   #deltaLine{ color:var(--ink-dim); font-size:.98rem; font-style:italic; min-height:1.3em; }
   #deltaLine b{ color:var(--gold); font-style:normal; font-weight:600; }
+  #aspectLine{ color:var(--ink-dim); font-size:.95rem; min-height:1.3em; margin-top:.15rem;}
+  #aspectLine b{ color:var(--gold); font-weight:600;}
+  .glyphs{ font-family:"Apple Symbols","Segoe UI Symbol",serif; }
 
   /* ---- controls ---- */
   #controls{ width:min(92vw, 600px); background:var(--panel); border:1px solid var(--line);
@@ -83,11 +86,29 @@
 
   .dateRow{ display:flex; justify-content:center; align-items:center; gap:.6rem; margin-top:.8rem;}
   .dateRow label{ color:var(--ink-dim); font-size:.95rem;}
-  input[type=datetime-local]{
+  input[type=datetime-local], select{
     font-family:"Crimson Pro",serif; font-size:.95rem; color:var(--ink);
     background:#1b2138; border:1px solid var(--line); border-radius:8px; padding:.3rem .5rem;
     color-scheme:dark;
   }
+
+  /* ---- remarkable-skies scanner ---- */
+  #scanPanel{ width:min(92vw,600px); margin-top:1rem; background:var(--panel);
+              border:1px solid var(--line); border-radius:14px; padding:1rem 1.1rem 1.2rem;}
+  .scanHead{ display:flex; justify-content:center; align-items:center; gap:.6rem; flex-wrap:wrap;}
+  .scanTitle{ font-family:Cinzel,serif; font-size:1rem; letter-spacing:.1em;
+              text-transform:uppercase; color:var(--gold);}
+  #scanStatus{ text-align:center; color:var(--ink-dim); font-size:.88rem; font-style:italic;
+               margin-top:.55rem; min-height:1.2em;}
+  #scanGraphWrap{ position:relative; margin-top:.6rem; display:none;}
+  #scanGraph{ display:block; width:100%;}
+  #scanList{ margin-top:.5rem; display:flex; flex-direction:column; gap:.35rem;}
+  .scanRow{ background:#181e33; border:1px solid var(--line); border-radius:10px;
+            padding:.45rem .7rem; cursor:pointer; transition:border-color .15s, background .15s;}
+  .scanRow:hover{ border-color:var(--gold-dim); background:#1e2540;}
+  .scanScore{ font-family:Cinzel,serif; font-weight:600; color:var(--gold); margin-right:.6rem;}
+  .scanDate{ font-size:.98rem;}
+  .scanPats{ color:var(--ink-dim); font-size:.88rem; margin-top:.1rem;}
 
   /* ---- planet chips ---- */
   #chips{ width:min(92vw,600px); display:flex; flex-wrap:wrap; justify-content:center;
@@ -115,6 +136,7 @@
 <div id="readout">
   <div id="dateLine"></div>
   <div id="deltaLine"></div>
+  <div id="aspectLine"></div>
 </div>
 
 <div id="controls">
@@ -147,6 +169,22 @@
 </div>
 
 <div id="chips"></div>
+
+<div id="scanPanel">
+  <div class="scanHead">
+    <span class="scanTitle">Remarkable Skies</span>
+    <select id="scanSpan" aria-label="scan span around the displayed date">
+      <option value="1">±1 year</option>
+      <option value="5" selected>±5 years</option>
+      <option value="10">±10 years</option>
+      <option value="25">±25 years</option>
+    </select>
+    <button id="btnScan">Scan around this date</button>
+  </div>
+  <div id="scanStatus">hunt for grand trines, kites, crosses, and rarer figures near the displayed date</div>
+  <div id="scanGraphWrap"><canvas id="scanGraph"></canvas></div>
+  <div id="scanList"></div>
+</div>
 
 <footer>
   Planetary longitudes from JPL approximate Keplerian elements (best 1800–2050, shown 1600–2400);
@@ -263,6 +301,153 @@ function computeAll(ms){
   }));
 }
 
+/* ============================== aspect intensity ============================== */
+/* One table serves both the wheel and the analyzer; the quincunx is detected (for
+   yods) but has no color, so it is never drawn. Orbs don't overlap, so a pair
+   matches at most one aspect. */
+const ASPECT_TYPES = [
+  { key:'conj', ang:0,   orb:7, w:1.2, color:'212,175,90'  },
+  { key:'sext', ang:60,  orb:4, w:0.8, color:'106,196,184' },
+  { key:'sq',   ang:90,  orb:6, w:1.0, color:'224,106,79'  },
+  { key:'tri',  ang:120, orb:6, w:1.0, color:'126,168,212' },
+  { key:'quin', ang:150, orb:3, w:0.3, color:null           },
+  { key:'opp',  ang:180, orb:7, w:1.2, color:'204,82,96'   },
+];
+/* luminaries weigh most, slow outer planets least — an outer-planet figure lasts
+   months and would otherwise flood a scan, while Sun/Moon configurations are the
+   sharp, datable events worth surfacing */
+const PLANET_W = { sun:1.5, moon:1.5, mercury:1.1, venus:1.1, mars:1.1,
+                   jupiter:0.9, saturn:0.9, uranus:0.7, neptune:0.7, pluto:0.7 };
+const PW = BODIES.map(b => PLANET_W[b.id]);
+
+function* combos(m, k, start = 0, acc = []){
+  if (acc.length === k){ yield acc.slice(); return; }
+  for (let i = start; i <= m - (k - acc.length); i++){
+    acc.push(i); yield* combos(m, k, i + 1, acc); acc.pop();
+  }
+}
+const C3 = [...combos(BODIES.length, 3)],
+      C4 = [...combos(BODIES.length, 4)],
+      C6 = [...combos(BODIES.length, 6)];
+
+/* Score = Σ pairwise + Σ figure bonuses. Pairwise: PW[i]·PW[j]·w·tightness², so
+   exact aspects spike. Figures add a bonus scaled by their loosest member aspect;
+   overlapping figures stack, so a kite counts its grand trine too and a sky like
+   a grand sextile piles trines, kites, and rectangles into one huge score. */
+function analyzeSky(lons){
+  const n = lons.length;
+  const asp = Array.from({length:n}, () => new Array(n).fill(null));
+  const cnt = { conj:0, sext:0, sq:0, tri:0, quin:0, opp:0 };   // gates the figure hunts below
+  let score = 0;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){
+    const sep = Math.abs(wrap180(lons[i] - lons[j]));
+    for (const t of ASPECT_TYPES){
+      const dev = Math.abs(sep - t.ang);
+      if (dev <= t.orb){
+        const tight = 1 - dev/t.orb;
+        asp[i][j] = asp[j][i] = { key:t.key, tight };
+        cnt[t.key]++;
+        score += PW[i]*PW[j]*t.w*tight*tight;
+        break;
+      }
+    }
+  }
+  const is = (i, j, k) => asp[i][j] !== null && asp[i][j].key === k;
+  const minT = pairs => Math.min(...pairs.map(([i, j]) => asp[i][j].tight));
+  const patterns = [];
+  const add = (name, mem, bonus, tight) => {
+    patterns.push({ name, mem, pts: bonus*tight });
+    score += bonus*tight;
+  };
+
+  /* stelliums: 3+ bodies chained by conjunctions */
+  if (cnt.conj >= 2){
+    const p = [...Array(n).keys()];
+    const find = x => p[x] === x ? x : (p[x] = find(p[x]));
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++)
+      if (is(i, j, 'conj')) p[find(i)] = find(j);
+    const cl = new Map();
+    for (let i = 0; i < n; i++) cl.set(find(i), (cl.get(find(i)) || []).concat(i));
+    for (const m of cl.values()) if (m.length >= 3){
+      const pairs = [];
+      for (let a = 0; a < m.length; a++) for (let b = a + 1; b < m.length; b++)
+        if (is(m[a], m[b], 'conj')) pairs.push([m[a], m[b]]);
+      add('Stellium', m, 2.5*(m.length - 2), minT(pairs));
+    }
+  }
+
+  /* grand trines, and kites hung on their vertices */
+  if (cnt.tri >= 3) for (const [i, j, k] of C3){
+    if (!(is(i,j,'tri') && is(i,k,'tri') && is(j,k,'tri'))) continue;
+    const base = [[i,j],[i,k],[j,k]];
+    add('Grand Trine', [i,j,k], 6, minT(base));
+    for (let m = 0; m < n; m++){
+      if (m === i || m === j || m === k) continue;
+      for (const [v, o1, o2] of [[i,j,k],[j,i,k],[k,i,j]])
+        if (is(m,v,'opp') && is(m,o1,'sext') && is(m,o2,'sext'))
+          add('Kite', [o1, o2, v, m], 5, minT(base.concat([[m,v],[m,o1],[m,o2]])));
+    }
+  }
+
+  /* quads with all six pairs in aspect: grand crosses and mystic rectangles */
+  const crossSets = [];
+  if (cnt.opp >= 2 && (cnt.sq >= 4 || (cnt.sext >= 2 && cnt.tri >= 2))) for (const q of C4){
+    const pairs = [];
+    for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) pairs.push([q[a], q[b]]);
+    if (pairs.some(([a, b]) => asp[a][b] === null)) continue;
+    const cnt = {};
+    for (const [a, b] of pairs) cnt[asp[a][b].key] = (cnt[asp[a][b].key] || 0) + 1;
+    if (cnt.opp === 2 && cnt.sq === 4){
+      crossSets.push(q);
+      add('Grand Cross', q, 10, minT(pairs));
+    } else if (cnt.opp === 2 && cnt.sext === 2 && cnt.tri === 2){
+      add('Mystic Rectangle', q, 7, minT(pairs));
+    }
+  }
+
+  /* t-squares, unless the trio is already inside a grand cross */
+  if (cnt.opp >= 1 && cnt.sq >= 2) for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){
+    if (!is(i, j, 'opp')) continue;
+    for (let k = 0; k < n; k++){
+      if (k === i || k === j || !is(i,k,'sq') || !is(j,k,'sq')) continue;
+      if (crossSets.some(q => q.includes(i) && q.includes(j) && q.includes(k))) continue;
+      add('T-Square', [i, j, k], 3, minT([[i,j],[i,k],[j,k]]));
+    }
+  }
+
+  /* yods: two quincunxes to the apex over a sextile base */
+  if (cnt.quin >= 2 && cnt.sext >= 1) for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){
+    if (!is(i, j, 'sext')) continue;
+    for (let k = 0; k < n; k++)
+      if (k !== i && k !== j && is(i,k,'quin') && is(j,k,'quin'))
+        add('Yod', [i, j, k], 4, minT([[i,j],[i,k],[j,k]]));
+  }
+
+  /* grand sextile: six bodies whose longitude-sorted neighbors are all sextile */
+  if (cnt.sext >= 6) for (const h of C6){
+    const s6 = h.slice().sort((a, b) => lons[a] - lons[b]);
+    const pairs = [];
+    let ok = true;
+    for (let a = 0; a < 6 && ok; a++){
+      const A = s6[a], B = s6[(a + 1) % 6];
+      if (is(A, B, 'sext')) pairs.push([A, B]); else ok = false;
+    }
+    if (ok) add('Grand Sextile', s6, 25, minT(pairs));
+  }
+
+  /* lunations (Sun = 0, Moon = 1 in BODIES order) */
+  if (is(0, 1, 'opp'))  add('Full Moon', [0, 1], 2,   asp[0][1].tight);
+  if (is(0, 1, 'conj')) add('New Moon',  [0, 1], 1.5, asp[0][1].tight);
+
+  patterns.sort((a, b) => b.pts - a.pts);
+  return { score, patterns };
+}
+
+function lonsArrayAt(ms){
+  const l = lonsAt((ms/DAY + 2440587.5 - 2451545.0)/36525);
+  return BODIES.map(b => l[b.id]);
+}
+
 /* ============================== rendering ============================== */
 const SIGNS = [
   ['Aries','♈','fire'],['Taurus','♉','earth'],['Gemini','♊','air'],['Cancer','♋','water'],
@@ -270,13 +455,6 @@ const SIGNS = [
   ['Sagittarius','♐','fire'],['Capricorn','♑','earth'],['Aquarius','♒','air'],['Pisces','♓','water'],
 ];
 const ELEM = { fire:'224,118,79', earth:'170,178,110', air:'126,168,212', water:'106,196,184' };
-const ASPECTS = [
-  { ang:0,   orb:7, color:'212,175,90'  },      // conjunction
-  { ang:60,  orb:4, color:'106,196,184' },      // sextile
-  { ang:90,  orb:6, color:'224,106,79'  },      // square
-  { ang:120, orb:6, color:'126,168,212' },      // trine
-  { ang:180, orb:7, color:'204,82,96'   },      // opposition
-];
 
 const canvas = document.getElementById('sky');
 const ctx = canvas.getContext('2d');
@@ -363,14 +541,16 @@ function draw(bodies){
   for (let i = 0; i < bodies.length; i++){
     for (let j = i + 1; j < bodies.length; j++){
       const sep = Math.abs(wrap180(bodies[i].lon - bodies[j].lon));
-      for (const asp of ASPECTS){
+      for (const asp of ASPECT_TYPES){
         const dev = Math.abs(sep - asp.ang);
         if (dev <= asp.orb){
-          const tight = 1 - dev/asp.orb;
-          const p1 = pt(cx, cy, bodies[i].lon, hubR), p2 = pt(cx, cy, bodies[j].lon, hubR);
-          ctx.strokeStyle = `rgba(${asp.color},${0.15 + 0.55*tight})`;
-          ctx.lineWidth = 0.6 + 1.6*tight;
-          ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+          if (asp.color){
+            const tight = 1 - dev/asp.orb;
+            const p1 = pt(cx, cy, bodies[i].lon, hubR), p2 = pt(cx, cy, bodies[j].lon, hubR);
+            ctx.strokeStyle = `rgba(${asp.color},${0.15 + 0.55*tight})`;
+            ctx.lineWidth = 0.6 + 1.6*tight;
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+          }
           break;
         }
       }
@@ -494,6 +674,197 @@ function updateChips(bodies){
   });
 }
 
+/* ---- live sky-intensity readout ---- */
+const aspectLine = document.getElementById('aspectLine');
+const patHTML = p => `${p.name} <span class="glyphs">${p.mem.map(i => BODIES[i].glyph).join('')}</span>`;
+
+function updateAspects(bodies){
+  const r = analyzeSky(bodies.map(b => b.lon));
+  const pats = r.patterns.slice(0, 4).map(patHTML).join(' · ');
+  aspectLine.innerHTML = `sky intensity <b>${r.score.toFixed(1)}</b>` + (pats ? ' · ' + pats : '');
+}
+
+/* ---- remarkable-skies scanner ---- */
+const scanSel    = document.getElementById('scanSpan');
+const btnScan    = document.getElementById('btnScan');
+const scanStatus = document.getElementById('scanStatus');
+const scanList   = document.getElementById('scanList');
+const scanPanel  = document.getElementById('scanPanel');
+const scanGraphWrap = document.getElementById('scanGraphWrap');
+const scanGraph  = document.getElementById('scanGraph');
+const gctx       = scanGraph.getContext('2d');
+
+/* the intensity curve behind the last scan, so we can redraw on resize */
+let lastGraph = null;   // { t0, t1, step, scores, peaks }
+
+function drawScanGraph(){
+  if (!lastGraph){ scanGraphWrap.style.display = 'none'; return; }
+  scanGraphWrap.style.display = 'block';
+  const { t0, t1, step, scores, peaks } = lastGraph;
+  /* the wrap has just flipped from display:none; if layout hasn't settled its
+     width can read 0, so fall back to the panel width and retry next frame */
+  let cw = scanGraphWrap.getBoundingClientRect().width;
+  if (!cw){
+    cw = scanPanel.getBoundingClientRect().width - 2*17.6 || 300;   // panel minus padding
+    requestAnimationFrame(drawScanGraph);
+  }
+  const ch = 96;
+  const dpr = window.devicePixelRatio || 1;
+  scanGraph.width = Math.round(cw*dpr);
+  scanGraph.height = Math.round(ch*dpr);
+  scanGraph.style.height = ch + 'px';
+  gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  gctx.clearRect(0, 0, cw, ch);
+
+  const padT = 8, padB = 16, padX = 2;
+  const plotW = cw - 2*padX, plotH = ch - padT - padB, baseY = ch - padB;
+  let hi = 0;
+  for (let i = 0; i < scores.length; i++) if (scores[i] > hi) hi = scores[i];
+  hi = Math.max(hi, 1);
+  const X = t => padX + plotW*(t - t0)/(t1 - t0);
+  const Y = s => baseY - plotH*s/hi;
+
+  /* year gridlines + labels */
+  gctx.font = '10px "Crimson Pro",serif';
+  gctx.textAlign = 'center';
+  gctx.textBaseline = 'top';
+  const yrSpan = (t1 - t0)/YEAR;
+  const yrStep = yrSpan > 40 ? 10 : yrSpan > 16 ? 5 : yrSpan > 6 ? 2 : 1;
+  const y0 = new Date(t0).getFullYear();
+  for (let y = Math.ceil(y0/yrStep)*yrStep; ; y += yrStep){
+    const t = Date.UTC(y, 0, 1);
+    if (t > t1) break;
+    if (t < t0) continue;
+    const x = X(t);
+    gctx.strokeStyle = 'rgba(212,175,90,0.10)';
+    gctx.lineWidth = 1;
+    gctx.beginPath(); gctx.moveTo(x, padT); gctx.lineTo(x, baseY); gctx.stroke();
+    gctx.fillStyle = 'rgba(154,148,168,0.75)';
+    gctx.fillText(String(y), x, baseY + 3);
+  }
+
+  /* baseline */
+  gctx.strokeStyle = 'rgba(212,175,90,0.28)';
+  gctx.beginPath(); gctx.moveTo(padX, baseY); gctx.lineTo(cw - padX, baseY); gctx.stroke();
+
+  /* filled intensity curve */
+  gctx.beginPath();
+  gctx.moveTo(X(t0), baseY);
+  for (let i = 0; i < scores.length; i++) gctx.lineTo(X(t0 + i*step), Y(scores[i]));
+  gctx.lineTo(X(t0 + (scores.length - 1)*step), baseY);
+  gctx.closePath();
+  const grad = gctx.createLinearGradient(0, padT, 0, baseY);
+  grad.addColorStop(0, 'rgba(212,175,90,0.30)');
+  grad.addColorStop(1, 'rgba(212,175,90,0.02)');
+  gctx.fillStyle = grad;
+  gctx.fill();
+
+  gctx.beginPath();
+  for (let i = 0; i < scores.length; i++){
+    const x = X(t0 + i*step), y = Y(scores[i]);
+    i ? gctx.lineTo(x, y) : gctx.moveTo(x, y);
+  }
+  gctx.strokeStyle = 'rgba(212,175,90,0.85)';
+  gctx.lineWidth = 1.2;
+  gctx.stroke();
+
+  /* marker for each peak that made the list */
+  for (const p of peaks){
+    const x = X(p.t), y = Y(p.score);
+    gctx.beginPath();
+    gctx.moveTo(x, y); gctx.lineTo(x, baseY);
+    gctx.strokeStyle = 'rgba(224,118,79,0.35)';
+    gctx.lineWidth = 1;
+    gctx.stroke();
+    gctx.beginPath();
+    gctx.arc(x, y, 3, 0, 2*Math.PI);
+    gctx.fillStyle = '#e0764f';
+    gctx.shadowColor = '#e0764f'; gctx.shadowBlur = 6;
+    gctx.fill();
+    gctx.shadowBlur = 0;
+  }
+}
+window.addEventListener('resize', drawScanGraph);
+
+/* click a spike to travel to that peak */
+scanGraph.addEventListener('click', e => {
+  if (!lastGraph) return;
+  const { t0, t1, peaks } = lastGraph;
+  const r = scanGraph.getBoundingClientRect();
+  const clickT = t0 + (t1 - t0)*(e.clientX - r.left)/r.width;
+  let best = null, bd = Infinity;
+  for (const p of peaks){
+    const d = Math.abs(p.t - clickT);
+    if (d < bd){ bd = d; best = p; }
+  }
+  if (best && bd < (t1 - t0)*0.03) target = clampT(best.t);
+});
+
+function renderScan(results){
+  scanList.innerHTML = '';
+  for (const r of results){
+    const row = document.createElement('div');
+    row.className = 'scanRow';
+    const d = new Date(r.t);
+    const pats = r.patterns.slice(0, 5).map(patHTML).join(' · ');
+    row.innerHTML =
+      `<span class="scanScore">${r.score.toFixed(1)}</span>` +
+      `<span class="scanDate">${fmtDate.format(d)} · ${fmtTime.format(d)}</span>` +
+      `<div class="scanPats">${pats || 'a chorus of close aspects, no named figure'}</div>`;
+    row.addEventListener('click', () => { target = clampT(r.t); });
+    scanList.appendChild(row);
+  }
+}
+
+btnScan.addEventListener('click', () => {
+  if (btnScan.disabled) return;
+  btnScan.disabled = true;
+  scanList.innerHTML = '';
+  lastGraph = null; drawScanGraph();
+  const span = Number(scanSel.value)*YEAR;
+  const t0 = clampT(target - span), t1 = clampT(target + span);
+  const STEP = 3*HOUR;
+  const N = Math.floor((t1 - t0)/STEP);
+  const scores = new Float32Array(N + 1);
+  let i = 0;
+  (function chunk(){
+    const end = Math.min(N, i + 4000);
+    for (; i <= end; i++) scores[i] = analyzeSky(lonsArrayAt(t0 + i*STEP)).score;
+    scanStatus.textContent = `reading the sky… ${Math.round(100*i/(N + 1))}%`;
+    if (i <= N){ setTimeout(chunk, 0); return; }
+
+    /* local maxima → keep the best, at least 5 days apart → refine to 10 min */
+    const peaks = [];
+    for (let s = 1; s < N; s++)
+      if (scores[s] > scores[s - 1] && scores[s] >= scores[s + 1])
+        peaks.push({ t: t0 + s*STEP, score: scores[s] });
+    peaks.sort((a, b) => b.score - a.score);
+    const kept = [];
+    for (const p of peaks){
+      if (kept.some(q => Math.abs(q.t - p.t) < 5*DAY)) continue;
+      kept.push(p);
+      if (kept.length === 16) break;
+    }
+    const results = kept.map(p => {
+      let bt = p.t, bs = -1;
+      for (let t = p.t - STEP; t <= p.t + STEP; t += 10*60000){
+        const s = analyzeSky(lonsArrayAt(t)).score;
+        if (s > bs){ bs = s; bt = t; }
+      }
+      return { t: bt, ...analyzeSky(lonsArrayAt(bt)) };
+    }).sort((a, b) => b.score - a.score);
+
+    lastGraph = { t0, t1, step: STEP, scores, peaks: results };
+    drawScanGraph();
+    renderScan(results);
+    const y = t => new Date(t).getFullYear();
+    scanStatus.textContent = results.length
+      ? `the ${results.length} most remarkable skies of ${y(t0)}–${y(t1)} — click one to travel there`
+      : 'nothing notable found in this range';
+    btnScan.disabled = false;
+  })();
+});
+
 /* shuttle: deflection = speed (quartic curve → fine near centre, years/sec at the ends) */
 shuttle.addEventListener('input', () => { shuttleVal = shuttle.value/100; });
 function releaseShuttle(){
@@ -591,6 +962,7 @@ function frame(now){
     draw(bodies);
     updateReadout();
     updateChips(bodies);
+    updateAspects(bodies);
   }
   requestAnimationFrame(frame);
 }
