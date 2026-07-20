@@ -77,13 +77,13 @@ color:var(--gold-light);cursor:pointer;margin-top:1rem;
 transition:background 0.2s;
 }
 .birth-submit:hover{background:rgba(201,168,76,0.28);}
-.birth-gender-btn {
+.birth-pronoun-btn {
 font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.12em;
 padding:0.3rem 0.7rem;cursor:pointer;border:none;background:transparent;
 color:rgba(245,240,232,0.45);transition:all 0.2s;
 }
-.birth-gender-btn:hover{color:rgba(245,240,232,0.8);background:rgba(201,168,76,0.08);}
-.birth-gender-btn.active{background:rgba(201,168,76,0.2);color:var(--gold-light);}
+.birth-pronoun-btn:hover{color:rgba(245,240,232,0.8);background:rgba(201,168,76,0.08);}
+.birth-pronoun-btn.active{background:rgba(201,168,76,0.2);color:var(--gold-light);}
 .birth-note{font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.35);margin-top:0.5rem;}
 .tone-panel {
 border:1px solid rgba(201,168,76,0.3);
@@ -444,6 +444,96 @@ function natalSynastryItems(wN, mN, W) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// POLARITY — drawing in vs moving toward
+// ═══════════════════════════════════════════════════════════════
+// This axis is Venus (magnetic, receptive charge) vs Mars (kinetic,
+// initiating charge), scored from each person's own chart, their dignity,
+// and how their Venus/Mars cross the other's. It carries no assumption
+// about gender or role: two people of any pairing can land anywhere on it,
+// including the same place, and a person's own position can move night to
+// night relative to their own baseline — including a full reversal.
+
+// The moment's live charge — natal chart plus tonight's transits plus the
+// cross-chart pull from the partner's natal Venus/Mars.
+function polarityCharge(jd, natal, otherNatal) {
+  const tr = computePlanets(jd);
+  let drawIn = 0, moveOut = 0;
+  const a1 = aspectBetween('Mars', tr.Mars, 'Venus', natal.Venus);
+  if (a1 && ['fusion','harmony','ease'].includes(a1.quality)) drawIn += 10 * orbFactor(a1.orbRatio);
+  const a2 = aspectBetween('Venus', tr.Venus, 'Mars', natal.Mars);
+  if (a2 && ['fusion','harmony','ease'].includes(a2.quality)) moveOut += 10 * orbFactor(a2.orbRatio);
+  drawIn  += (dignityOf('Venus', natal.Venus).mod - 1) * 8;
+  moveOut += (dignityOf('Mars',  natal.Mars).mod  - 1) * 8;
+  const a3 = aspectBetween('Venus', natal.Venus, 'Mars', otherNatal.Mars);
+  if (a3 && ['fusion','harmony','ease'].includes(a3.quality)) drawIn += 5 * orbFactor(a3.orbRatio);
+  const a4 = aspectBetween('Mars', natal.Mars, 'Venus', otherNatal.Venus);
+  if (a4 && ['fusion','harmony','ease'].includes(a4.quality)) moveOut += 5 * orbFactor(a4.orbRatio);
+  return { drawIn, moveOut };
+}
+
+// A person's baseline — no partner, no transit, just their own Venus and
+// Mars at rest. This is the erotic "basic energy" they carry into any
+// encounter, with anyone, independent of who they're with tonight.
+function natalPolarityBaseline(natal) {
+  let drawIn = 0, moveOut = 0;
+  drawIn  += (dignityOf('Venus', natal.Venus).mod - 1) * 10;
+  moveOut += (dignityOf('Mars',  natal.Mars).mod  - 1) * 10;
+  if (natal.Asc !== undefined) {
+    const vH = houseOf(natal.Venus, natal.Asc), mH = houseOf(natal.Mars, natal.Asc);
+    if (vH === 8) drawIn += 6; else if ([1,7].includes(vH)) drawIn += 4;
+    if (mH === 1) moveOut += 6; else if ([5,8].includes(mH)) moveOut += 4;
+  }
+  const vs = aspectBetween('Venus', natal.Venus, 'Sun', natal.Sun);
+  if (vs && ['fusion','harmony','ease'].includes(vs.quality)) drawIn += 4 * orbFactor(vs.orbRatio);
+  const ms = aspectBetween('Mars', natal.Mars, 'Sun', natal.Sun);
+  if (ms && ['fusion','harmony','ease'].includes(ms.quality)) moveOut += 4 * orbFactor(ms.orbRatio);
+  return { drawIn, moveOut };
+}
+
+// Four states, not two. A low-charge tie is quiet; a high-charge tie means
+// both currents run strong at once — fluid, available to either role,
+// rather than merely "balanced" in a neutral sense.
+function polarityRole(pol) {
+  const diff = pol.drawIn - pol.moveOut, total = pol.drawIn + pol.moveOut;
+  if (Math.abs(diff) < 1.5) return total > 8 ? 'fluid' : 'quiet';
+  return diff > 0 ? 'drawing' : 'moving';
+}
+
+function polarityRoleColor(role, alpha) {
+  if (role === 'drawing') return `rgba(100,181,246,${alpha})`;
+  if (role === 'moving')  return `rgba(229,115,115,${alpha})`;
+  if (role === 'fluid')   return `rgba(201,168,76,${alpha})`;
+  return `rgba(245,240,232,${alpha*0.25})`;
+}
+
+const POLARITY_ROLE_LABEL = { drawing:'drawing in', moving:'moving toward', fluid:'fluid — open to either', quiet:'quiet' };
+
+function polarityVerb(role, plural) {
+  if (role === 'drawing') return plural ? 'draw inward' : 'draws inward';
+  if (role === 'moving')  return plural ? 'move toward' : 'moves toward';
+  if (role === 'fluid')   return plural ? 'hold both currents at once' : 'holds both currents at once';
+  return plural ? 'sit quiet' : 'sits quiet';
+}
+
+function polarityDesc(role, pw) {
+  const plural = pw.sub === 'They', verb = polarityVerb(role, plural);
+  if (role === 'drawing') return `${pw.sub} ${verb} — magnetic, receptive, setting the field`;
+  if (role === 'moving')  return `${pw.sub} ${verb} — initiating, reaching, closing the distance`;
+  if (role === 'fluid')   return `${pw.sub} ${verb} tonight — pulled and pulling in the same breath`;
+  return `${pw.sub} ${verb} tonight — neither current runs strong`;
+}
+
+// A concrete, chart-based instance of "playing with reversal": only fires
+// when tonight's directional role is the opposite of this person's own
+// natal baseline — never a claim about what anyone "should" do.
+function polarityReversalNote(momentRole, baselineRole, pw) {
+  const opposite = { drawing:'moving', moving:'drawing' };
+  if (opposite[baselineRole] !== momentRole) return null;
+  const plural = pw.sub === 'They';
+  return `${pw.sub} usually ${polarityVerb(baselineRole, plural)} — tonight ${plural ? 'they run' : pw.sub.toLowerCase() + ' runs'} the other way. A night for playing against type.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SCORING — tone-aware
 // ═══════════════════════════════════════════════════════════════
 
@@ -777,11 +867,11 @@ let BIRTH = {
   wYear:1980, wMonth:5, wDay:20, wHour:1, wMin:30, wAmpm:'PM',
   wCity:'Berkeley, California',
   wLat:37.8716, wLng:-122.2727, wUtcOffset:-7,
-  wGender: 'woman',
+  wPronoun: 'she',
   mYear:1976, mMonth:5, mDay:13, mHour:7, mMin:0, mAmpm:'AM',
   mCity:'Portland, Maine',
   mLat:43.6615, mLng:-70.2553, mUtcOffset:-4,
-  mGender: 'man',
+  mPronoun: 'he',
 };
 
 function localToUtcH(hour, min, ampm, utcOffset) {
@@ -804,23 +894,25 @@ function computeNatals() {
 
 let { wNatal, mNatal } = computeNatals();
 
+// Pronouns are for narration only — "Person One"/"Person Two" (never a
+// gender) are what actually label charts, aspects, and score items, so the
+// astrology never editorializes about who someone is. If both people pick
+// the same binary pronoun, a same-pronoun sentence ("she... she...") would
+// be ambiguous about who's who, so both fall back to name-based reference;
+// otherwise each person's own choice is honored regardless of the other's.
 const P = {
-  get _useGendered() {
-    return BIRTH.wGender !== 'person' && BIRTH.mGender !== 'person' && BIRTH.wGender !== BIRTH.mGender;
+  get _ambiguous() {
+    return BIRTH.wPronoun !== 'they' && BIRTH.wPronoun === BIRTH.mPronoun;
   },
   get w() {
-    if (this._useGendered && BIRTH.wGender === 'woman')
-      return { sub:'She', obj:'her', pos:'her', name:'Person One (Woman)', short:'her', label:'Woman' };
-    if (this._useGendered && BIRTH.wGender === 'man')
-      return { sub:'He', obj:'him', pos:'his', name:'Person One (Man)', short:'his', label:'Man' };
-    return { sub:'They', obj:'them', pos:'their', name:'Person One', short:'P1', label:'Person' };
+    if (!this._ambiguous && BIRTH.wPronoun === 'she') return { sub:'She', obj:'her', pos:'her', name:'Person One', short:'her' };
+    if (!this._ambiguous && BIRTH.wPronoun === 'he')  return { sub:'He',  obj:'him', pos:'his', name:'Person One', short:'his' };
+    return { sub:'They', obj:'them', pos:'their', name:'Person One', short:'P1' };
   },
   get m() {
-    if (this._useGendered && BIRTH.mGender === 'man')
-      return { sub:'He', obj:'him', pos:'his', name:'Person Two (Man)', short:'his', label:'Man' };
-    if (this._useGendered && BIRTH.mGender === 'woman')
-      return { sub:'She', obj:'her', pos:'her', name:'Person Two (Woman)', short:'her', label:'Woman' };
-    return { sub:'They', obj:'them', pos:'their', name:'Person Two', short:'P2', label:'Person' };
+    if (!this._ambiguous && BIRTH.mPronoun === 'he')  return { sub:'He',  obj:'him', pos:'his', name:'Person Two', short:'his' };
+    if (!this._ambiguous && BIRTH.mPronoun === 'she') return { sub:'She', obj:'her', pos:'her', name:'Person Two', short:'her' };
+    return { sub:'They', obj:'them', pos:'their', name:'Person Two', short:'P2' };
   },
 };
 
@@ -885,11 +977,11 @@ function renderBirthPanel() {
       <div class="birth-person-label">Person One</div>
       <div class="birth-row">
         <div class="birth-field">
-          <label>Identity</label>
+          <label>Pronouns</label>
           <div style="display:flex;border:1px solid rgba(201,168,76,0.3);border-radius:2px;overflow:hidden">
-            <button class="birth-gender-btn ${p.wGender==='woman'?'active':''}" onclick="BIRTH.wGender='woman';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Woman</button>
-            <button class="birth-gender-btn ${p.wGender==='man'?'active':''}" onclick="BIRTH.wGender='man';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Man</button>
-            <button class="birth-gender-btn ${p.wGender==='person'?'active':''}" onclick="BIRTH.wGender='person';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Person</button>
+            <button class="birth-pronoun-btn ${p.wPronoun==='she'?'active':''}" onclick="BIRTH.wPronoun='she';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">She</button>
+            <button class="birth-pronoun-btn ${p.wPronoun==='he'?'active':''}" onclick="BIRTH.wPronoun='he';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">He</button>
+            <button class="birth-pronoun-btn ${p.wPronoun==='they'?'active':''}" onclick="BIRTH.wPronoun='they';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">They</button>
           </div>
         </div>
         <div class="birth-field" style="flex:2;min-width:160px">
@@ -911,11 +1003,11 @@ function renderBirthPanel() {
       <div class="birth-person-label">Person Two</div>
       <div class="birth-row">
         <div class="birth-field">
-          <label>Identity</label>
+          <label>Pronouns</label>
           <div style="display:flex;border:1px solid rgba(201,168,76,0.3);border-radius:2px;overflow:hidden">
-            <button class="birth-gender-btn ${p.mGender==='woman'?'active':''}" onclick="BIRTH.mGender='woman';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Woman</button>
-            <button class="birth-gender-btn ${p.mGender==='man'?'active':''}" onclick="BIRTH.mGender='man';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Man</button>
-            <button class="birth-gender-btn ${p.mGender==='person'?'active':''}" onclick="BIRTH.mGender='person';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Person</button>
+            <button class="birth-pronoun-btn ${p.mPronoun==='she'?'active':''}" onclick="BIRTH.mPronoun='she';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">She</button>
+            <button class="birth-pronoun-btn ${p.mPronoun==='he'?'active':''}" onclick="BIRTH.mPronoun='he';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">He</button>
+            <button class="birth-pronoun-btn ${p.mPronoun==='they'?'active':''}" onclick="BIRTH.mPronoun='they';this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">They</button>
           </div>
         </div>
         <div class="birth-field" style="flex:2;min-width:160px">
@@ -933,6 +1025,7 @@ function renderBirthPanel() {
         ${p.mCity} · ${p.mLat.toFixed(4)}°, ${p.mLng.toFixed(4)}° · UTC${p.mUtcOffset >= 0 ? '+' : ''}${p.mUtcOffset}
       </div>
     </div>
+    <div class="birth-note">Pronouns shape the reading's prose only. Who draws in and who moves toward — the polarity below — is computed from each person's own Venus and Mars, never from pronoun or gender.</div>
     <div id="birthError" style="color:#ef9a9a;font-size:0.85rem;font-style:italic;margin-top:0.5rem;display:none"></div>
     <button class="birth-submit" id="birthSubmitBtn" onclick="applyBirth()">Look Up & Recalculate</button>
   </div>
@@ -1166,53 +1259,29 @@ function render() {
   const moonH=houseOf(tr.Moon,bestAsc), venusH=houseOf(tr.Venus,bestAsc), marsH=houseOf(tr.Mars,bestAsc);
   const vmAsp=findAspect(tr.Venus,tr.Mars);
 
-  function polarityScore(natalChart) {
-    let drawIn = 0, moveOut = 0;
-    const tmv = findAspect(tr.Mars, natalChart.Venus);
-    if (tmv && ['fusion','harmony','ease'].includes(tmv.quality)) drawIn += 10 * orbFactor(tmv.orbRatio);
-    const tvm = findAspect(tr.Venus, natalChart.Mars);
-    if (tvm && ['fusion','harmony','ease'].includes(tvm.quality)) moveOut += 10 * orbFactor(tvm.orbRatio);
-    const vDig = dignityOf('Venus', natalChart.Venus).mod;
-    drawIn += (vDig - 1) * 8;
-    const mDig = dignityOf('Mars', natalChart.Mars).mod;
-    moveOut += (mDig - 1) * 8;
-    const wvhm = findAspect(natalChart.Venus, (natalChart === wNatal ? mNatal : wNatal).Mars);
-    if (wvhm && ['fusion','harmony','ease'].includes(wvhm.quality)) drawIn += 5 * orbFactor(wvhm.orbRatio);
-    const wmhv = findAspect(natalChart.Mars, (natalChart === wNatal ? mNatal : wNatal).Venus);
-    if (wmhv && ['fusion','harmony','ease'].includes(wmhv.quality)) moveOut += 5 * orbFactor(wmhv.orbRatio);
-    return { drawIn, moveOut };
-  }
+  const wPol = polarityCharge(best.jd, wNatal, mNatal);
+  const mPol = polarityCharge(best.jd, mNatal, wNatal);
+  const wRole = { role: polarityRole(wPol), desc: polarityDesc(polarityRole(wPol), P.w) };
+  const mRole = { role: polarityRole(mPol), desc: polarityDesc(polarityRole(mPol), P.m) };
 
-  const wPol = polarityScore(wNatal);
-  const mPol = polarityScore(mNatal);
-
-  function polarityLabel(pol, pw) {
-    const diff = pol.drawIn - pol.moveOut;
-    const margin = Math.abs(diff);
-    const name = pw.sub;
-    if (margin < 1.5) return { role: 'balanced', desc: `${name} ${pw.sub==='They'?'are':'is'} evenly poised — neither drawing in nor moving toward dominates` };
-    if (diff > 0)     return { role: 'drawing',  desc: `${name} draw${pw.sub==='They'?'':'s'} inward — magnetic, receptive, setting the field` };
-    return              { role: 'moving',   desc: `${name} move${pw.sub==='They'?'':'s'} outward — initiating, reaching, closing the distance` };
-  }
-
-  const wRole = polarityLabel(wPol, P.w);
-  const mRole = polarityLabel(mPol, P.m);
+  const wBaseRole = polarityRole(natalPolarityBaseline(wNatal));
+  const mBaseRole = polarityRole(natalPolarityBaseline(mNatal));
+  const wReversal = polarityReversalNote(wRole.role, wBaseRole, P.w);
+  const mReversal = polarityReversalNote(mRole.role, mBaseRole, P.m);
 
   function polarityVerdict() {
-    const ws = P.w.sub, ms = P.m.sub;
-    if (wRole.role === 'balanced' && mRole.role === 'balanced')
-      return 'The polarity between them is fluid — neither leads, neither follows; the current moves both ways at once.';
-    if (wRole.role === 'drawing' && mRole.role === 'moving')
-      return `${ws} draw${ws==='They'?'':'s'} inward; ${ms.toLowerCase()} move${ms==='They'?'':'s'} toward. The polarity is clean and complete.`;
-    if (wRole.role === 'moving' && mRole.role === 'drawing')
-      return `${ms} draw${ms==='They'?'':'s'} inward; ${ws.toLowerCase()} move${ws==='They'?'':'s'} toward. An inversion of the expected — and often the more electric for it.`;
-    if (wRole.role === 'drawing' && mRole.role === 'drawing')
-      return 'Both draw inward at this moment — a meeting of two open fields. Someone will need to break the surface.';
-    if (wRole.role === 'moving' && mRole.role === 'moving')
-      return 'Both move outward — desire looking for a landing place. The charge is high; the direction, mutual.';
-    if (wRole.role === 'balanced')
-      return `${ws} ${ws==='They'?'are':'is'} poised; ${mRole.role === 'moving' ? `${ms.toLowerCase()} reach${ms==='They'?'':'es'} toward` : `${ms.toLowerCase()} draw${ms==='They'?'':'s'} inward`}.`;
-    return `${ms} ${ms==='They'?'are':'is'} poised; ${wRole.role === 'moving' ? `${ws.toLowerCase()} reach${ws==='They'?'':'es'} toward` : `${ws.toLowerCase()} draw${ws==='They'?'':'s'} inward`}.`;
+    if (wRole.role === mRole.role) {
+      if (wRole.role === 'fluid')   return 'Both run fluid at once — desire looking for a landing place, direction mutual, roles negotiable in real time.';
+      if (wRole.role === 'quiet')   return 'Both sit quiet at this moment — the charge is present but unhurried; nothing needs to be decided yet.';
+      if (wRole.role === 'drawing') return 'Both draw inward at once — a meeting of two open fields. Someone will need to break the surface.';
+      return 'Both move outward at once — desire looking for a landing place. The charge is high; the direction, mutual.';
+    }
+    if ((wRole.role==='drawing'&&mRole.role==='moving') || (wRole.role==='moving'&&mRole.role==='drawing')) {
+      const drawer = wRole.role==='drawing' ? P.w : P.m, mover = wRole.role==='moving' ? P.w : P.m;
+      return `${drawer.sub} ${polarityVerb('drawing', drawer.sub==='They')}; ${mover.sub==='They'?'they':mover.sub.toLowerCase()} ${polarityVerb('moving', mover.sub==='They')}. The polarity is complementary and complete.`;
+    }
+    const sentence = (role, pw) => `${pw.sub} ${polarityVerb(role, pw.sub==='They')}`;
+    return `${sentence(wRole.role, P.w)}. ${sentence(mRole.role, P.m)}.`;
   }
 
   const showAsp = (a) => ['harmony','fusion','ease'].includes(a.quality) || (TONE.t3==='tension' && ['tension','friction'].includes(a.quality));
@@ -1284,14 +1353,21 @@ ${renderBirthPanel()}
     </div>
     <div class="house-card" style="grid-column:1/-1">
       <div class="house-num">Polarity · Who draws in, who moves toward</div>
+      <div style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.4);margin:0.2rem 0 0.6rem">
+        Computed from each person's own Venus and Mars — never from gender. Baseline is their natal signature; this moment is the sky's current pull.
+      </div>
       <div class="house-desc" style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-top:0.3rem">
         <div>
-          <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.15em;color:${wRole.role==='drawing'?'#64b5f6':wRole.role==='moving'?'#e57373':'rgba(245,240,232,0.4)'};margin-bottom:0.3rem;text-transform:uppercase">${P.w.name} · ${wRole.role==='drawing'?'↓ Drawing in':wRole.role==='moving'?'↑ Moving toward':'⇌ Balanced'}</div>
+          <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.15em;color:${polarityRoleColor(wRole.role,1)};margin-bottom:0.3rem;text-transform:uppercase">${P.w.name} · ${wRole.role==='drawing'?'↓ Drawing in':wRole.role==='moving'?'↑ Moving toward':wRole.role==='fluid'?'⇌ Fluid':'· Quiet'}</div>
           <div>${wRole.desc}</div>
+          <div style="font-size:0.78rem;opacity:0.55;margin-top:0.35rem">Natal baseline: ${POLARITY_ROLE_LABEL[wBaseRole]}</div>
+          ${wReversal ? `<div style="font-size:0.82rem;color:var(--gold-light);font-style:italic;margin-top:0.3rem">${wReversal}</div>` : ''}
         </div>
         <div>
-          <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.15em;color:${mRole.role==='drawing'?'#64b5f6':mRole.role==='moving'?'#e57373':'rgba(245,240,232,0.4)'};margin-bottom:0.3rem;text-transform:uppercase">${P.m.name} · ${mRole.role==='drawing'?'↓ Drawing in':mRole.role==='moving'?'↑ Moving toward':'⇌ Balanced'}</div>
+          <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.15em;color:${polarityRoleColor(mRole.role,1)};margin-bottom:0.3rem;text-transform:uppercase">${P.m.name} · ${mRole.role==='drawing'?'↓ Drawing in':mRole.role==='moving'?'↑ Moving toward':mRole.role==='fluid'?'⇌ Fluid':'· Quiet'}</div>
           <div>${mRole.desc}</div>
+          <div style="font-size:0.78rem;opacity:0.55;margin-top:0.35rem">Natal baseline: ${POLARITY_ROLE_LABEL[mBaseRole]}</div>
+          ${mReversal ? `<div style="font-size:0.82rem;color:var(--gold-light);font-style:italic;margin-top:0.3rem">${mReversal}</div>` : ''}
         </div>
       </div>
     </div>
@@ -1391,18 +1467,20 @@ function renderCharts() {
 <div class="section" id="polaritySection">
   <div class="section-title">Polarity Guide</div>
   <div style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.38);margin-bottom:0.6rem">
-    Each band shows one person's dominant polarity day by day — drawing in vs moving toward vs balanced.
+    Each band tracks one person's own Venus/Mars charge day by day — not their gender. The small caption is their
+    natal baseline; a gold cap on a cell marks a reversal night, where the sky pulls them the opposite way from usual.
     Hover for details.
   </div>
   <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.8rem;font-size:0.78rem;color:rgba(245,240,232,0.5);align-items:center">
     <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:10px;border-radius:2px;background:#64b5f6;display:inline-block"></span>Drawing in</span>
     <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:10px;border-radius:2px;background:#e57373;display:inline-block"></span>Moving toward</span>
-    <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:10px;border-radius:2px;background:rgba(245,240,232,0.15);display:inline-block"></span>Balanced</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:10px;border-radius:2px;background:#c9a84c;display:inline-block"></span>Fluid (switch)</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:10px;border-radius:2px;background:rgba(245,240,232,0.15);display:inline-block"></span>Quiet</span>
     <span style="margin-left:0.5rem;color:rgba(245,240,232,0.3)">·</span>
     <span style="color:rgba(245,240,232,0.45)" id="polarityLegendNote"></span>
   </div>
   <div id="polarityMsg" style="font-size:0.78rem;font-style:italic;color:rgba(245,240,232,0.38);margin-bottom:0.6rem">Computing…</div>
-  <canvas id="polarityCanvas" style="width:100%;display:block" aria-label="60-day polarity tracker showing drawing-in vs moving-toward for each person"></canvas>
+  <canvas id="polarityCanvas" style="width:100%;display:block" aria-label="60-day polarity tracker showing drawing-in, moving-toward, fluid, or quiet charge for each person"></canvas>
   <div id="polarityTooltip" style="min-height:40px;margin-top:8px;padding:8px 12px;background:rgba(10,8,18,0.92);border:1px solid rgba(201,168,76,0.3);font-family:'Cormorant Garamond',serif;font-size:12px;display:none"></div>
 </div>`;
 }
@@ -1738,33 +1816,12 @@ function startPolarityChart() {
   var DAYS = 60;
   var BASE2 = currentBaseJD();
 
-  function polScore(jd, natalChart, otherNatal) {
-    var tr = computePlanets(jd);
-    var drawIn=0, moveOut=0;
-    var a1=findAspect(tr.Mars, natalChart.Venus);
-    if(a1&&['fusion','harmony','ease'].indexOf(a1.quality)>=0) drawIn+=10*orbFactor(a1.orbRatio);
-    var a2=findAspect(tr.Venus, natalChart.Mars);
-    if(a2&&['fusion','harmony','ease'].indexOf(a2.quality)>=0) moveOut+=10*orbFactor(a2.orbRatio);
-    drawIn += (dignityOf('Venus', natalChart.Venus).mod - 1) * 8;
-    moveOut += (dignityOf('Mars', natalChart.Mars).mod - 1) * 8;
-    var a3=findAspect(natalChart.Venus, otherNatal.Mars);
-    if(a3&&['fusion','harmony','ease'].indexOf(a3.quality)>=0) drawIn+=5*orbFactor(a3.orbRatio);
-    var a4=findAspect(natalChart.Mars, otherNatal.Venus);
-    if(a4&&['fusion','harmony','ease'].indexOf(a4.quality)>=0) moveOut+=5*orbFactor(a4.orbRatio);
-    return {drawIn:drawIn, moveOut:moveOut};
-  }
-
-  function polarityRole(pol) {
-    var diff = pol.drawIn - pol.moveOut;
-    if (Math.abs(diff) < 1.5) return 'balanced';
-    return diff > 0 ? 'drawing' : 'moving';
-  }
-
-  function roleColor(role, alpha) {
-    if (role==='drawing')  return 'rgba(100,181,246,'+alpha+')';
-    if (role==='moving')   return 'rgba(229,115,115,'+alpha+')';
-    return 'rgba(245,240,232,0.12)';
-  }
+  // polarityCharge, polarityRole, polarityRoleColor, natalPolarityBaseline
+  // and POLARITY_ROLE_LABEL are the shared engine defined in the first
+  // script block — reused here instead of a second, drifting copy.
+  var wBaseRole = polarityRole(natalPolarityBaseline(wNatal));
+  var mBaseRole = polarityRole(natalPolarityBaseline(mNatal));
+  var OPPOSITE = { drawing:'moving', moving:'drawing' };
 
   function jdCal(jd){var z=Math.floor(jd+0.5),A=z;if(z>=2299161){var al=Math.floor((z-1867216.25)/36524.25);A=z+1+al-Math.floor(al/4);}var B=A+1524,C=Math.floor((B-122.1)/365.25),D2=Math.floor(365.25*C),E=Math.floor((B-D2)/30.6001),mo=E<14?E-1:E-13;return{d:B-D2-Math.floor(30.6001*E),m:mo};}
   var MN4=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1773,16 +1830,12 @@ function startPolarityChart() {
 
   var legendNote = document.getElementById('polarityLegendNote');
   if (legendNote) {
-    if (P._useGendered) {
-      legendNote.textContent = 'When she draws in and he moves toward — or vice versa — the polarity is complementary.';
-    } else {
-      legendNote.textContent = 'When one draws in while the other moves toward, the polarity is complementary.';
-    }
+    legendNote.textContent = 'Complementary (one drawing, one moving) is one possible fit among several — matching, fluid, and quiet nights are just as real.';
   }
 
-  var BAND_H = 44;
+  var BAND_H = 48;
   var GAP     = 20;
-  var LABEL_W = 90;
+  var LABEL_W = 92;
   var AXIS_H  = 30;
   var TICK_EVERY = 7;
 
@@ -1802,8 +1855,8 @@ function startPolarityChart() {
     ctx.clearRect(0, 0, W, totalH);
 
     var bands = [
-      { y:8,            label: P._useGendered ? P.w.sub   : P.w.name, natal: wNatal, other: mNatal, key:'w' },
-      { y:8+BAND_H+GAP, label: P._useGendered ? P.m.sub   : P.m.name, natal: mNatal, other: wNatal, key:'m' },
+      { y:8,            label: P.w.sub, baseline: wBaseRole, key:'w' },
+      { y:8+BAND_H+GAP, label: P.m.sub, baseline: mBaseRole, key:'m' },
     ];
 
     for (var bi=0; bi<bands.length; bi++) {
@@ -1817,25 +1870,34 @@ function startPolarityChart() {
       ctx.roundRect ? ctx.roundRect(LABEL_W, by, chartW, BAND_H, 3) : ctx.rect(LABEL_W, by, chartW, BAND_H);
       ctx.fill(); ctx.stroke();
 
-      ctx.fillStyle = 'rgba(232,212,154,0.7)';
+      ctx.fillStyle = 'rgba(232,212,154,0.75)';
       ctx.font = '11px "Cinzel", serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(band.label.split(' (')[0].split(' ').slice(0,2).join(' '), LABEL_W-8, by+BAND_H/2);
+      ctx.fillText(band.label, LABEL_W-8, by+BAND_H/2-7);
+      ctx.fillStyle = 'rgba(232,212,154,0.4)';
+      ctx.font = 'italic 9px "Cormorant Garamond", serif';
+      ctx.fillText('baseline: ' + band.baseline, LABEL_W-8, by+BAND_H/2+8);
 
       for (var di=0; di<data.length; di++) {
         var day = data[di];
         var role = band.key==='w' ? day.wRole : day.mRole;
         var pol  = band.key==='w' ? day.wPol  : day.mPol;
+        var isReversal = band.key==='w' ? day.wReversal : day.mReversal;
         var x = LABEL_W + di*dayW;
 
-        ctx.fillStyle = roleColor(role, 0.75);
+        ctx.fillStyle = polarityRoleColor(role, 0.75);
         ctx.fillRect(x+0.5, by+1, dayW-1, BAND_H-2);
 
-        var intensity = role==='drawing' ? pol.drawIn : role==='moving' ? pol.moveOut : 0;
-        var stripeH = Math.max(0, Math.min(BAND_H-2, (intensity/20) * (BAND_H-2)));
-        ctx.fillStyle = roleColor(role, 0.35);
+        var intensity = pol.drawIn + pol.moveOut;
+        var stripeH = Math.max(0, Math.min(BAND_H-2, (intensity/24) * (BAND_H-2)));
+        ctx.fillStyle = polarityRoleColor(role, 0.35);
         ctx.fillRect(x+0.5, by+1, dayW-1, stripeH);
+
+        if (isReversal) {
+          ctx.fillStyle = 'rgba(232,212,154,0.9)';
+          ctx.fillRect(x+0.5, by+1, dayW-1, 3);
+        }
       }
 
       ctx.strokeStyle = 'rgba(201,168,76,0.2)';
@@ -1876,14 +1938,12 @@ function startPolarityChart() {
     tip.style.display = 'block';
     tip.innerHTML =
       '<span style="color:#e8d49a;font-size:11px;letter-spacing:0.05em">' + day.label + '</span><br>' +
-      '<span style="color:'+roleColor(day.wRole,1)+'">' + (P._useGendered ? P.w.sub : P.w.name) + ': ' +
-        (day.wRole==='drawing'?'drawing in':day.wRole==='moving'?'moving toward':'balanced') +
-        ' (' + Math.abs(day.wPol.drawIn-day.wPol.moveOut).toFixed(1) + ')' +
+      '<span style="color:'+polarityRoleColor(day.wRole,1)+'">' + P.w.sub + ': ' + POLARITY_ROLE_LABEL[day.wRole] +
+        (day.wReversal ? ' · reversal from their usual ' + wBaseRole : '') +
       '</span>' +
       '<span style="color:rgba(245,240,232,0.3)"> · </span>' +
-      '<span style="color:'+roleColor(day.mRole,1)+'">' + (P._useGendered ? P.m.sub : P.m.name) + ': ' +
-        (day.mRole==='drawing'?'drawing in':day.mRole==='moving'?'moving toward':'balanced') +
-        ' (' + Math.abs(day.mPol.drawIn-day.mPol.moveOut).toFixed(1) + ')' +
+      '<span style="color:'+polarityRoleColor(day.mRole,1)+'">' + P.m.sub + ': ' + POLARITY_ROLE_LABEL[day.mRole] +
+        (day.mReversal ? ' · reversal from their usual ' + mBaseRole : '') +
       '</span>';
   };
   canvas.onmouseleave = function() {
@@ -1900,11 +1960,14 @@ function startPolarityChart() {
     }
     var jd0 = BASE2+day;
     var jd = jd0 + 19/24;
-    var wPol = polScore(jd, wNatal, mNatal);
-    var mPol = polScore(jd, mNatal, wNatal);
+    var wPol = polarityCharge(jd, wNatal, mNatal);
+    var mPol = polarityCharge(jd, mNatal, wNatal);
+    var wRole = polarityRole(wPol), mRole = polarityRole(mPol);
     data.push({
       jd: jd0, label: dayLabel(jd0),
-      wRole: polarityRole(wPol), mRole: polarityRole(mPol),
+      wRole: wRole, mRole: mRole,
+      wReversal: OPPOSITE[wBaseRole] === wRole,
+      mReversal: OPPOSITE[mBaseRole] === mRole,
       wPol: wPol, mPol: mPol
     });
     redraw();
