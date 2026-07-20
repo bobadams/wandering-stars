@@ -193,16 +193,58 @@ function toRad(d){return d*DEG;}
 function toDeg(r){return r*RAD;}
 function jdn(year,month,day,hour=0,min=0){const D=day+(hour+min/60)/24,A=Math.floor(year/100),B=2-A+Math.floor(A/4);return Math.floor(365.25*(year+4716))+Math.floor(30.6001*(month+1))+D+B-1524.5;}
 function julianCenturies(jd){return(jd-2451545)/36525;}
-function trueAnomaly(M_deg,e){const M=toRad(M_deg);let E=M;for(let i=0;i<12;i++)E=M+e*Math.sin(E);return mod360(toDeg(2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2))));}
 function sunLongitude(T){const L0=mod360(280.46646+36000.76983*T),M=mod360(357.52911+35999.05029*T),mr=toRad(M),C=(1.914602-0.004817*T)*Math.sin(mr)+(0.019993-0.000101*T)*Math.sin(2*mr),om=mod360(125.04-1934.136*T);return mod360(L0+C-0.00569-0.00478*Math.sin(toRad(om)));}
 function moonLongitude(T){const T2=T*T,T3=T2*T,T4=T3*T,D=mod360(297.8502+445267.1115*T-0.00163*T2+T3/545868-T4/113065000),M=mod360(357.5291+35999.0503*T-0.0001559*T2),Mp=mod360(134.9634+477198.8676*T+0.008997*T2+T3/69699-T4/14712000),F=mod360(93.2721+483202.0175*T-0.0034029*T2),L=mod360(218.3165+481267.8813*T),Dr=toRad(D),Mr=toRad(M),Mpr=toRad(Mp),Fr=toRad(F);let lon=L;const terms=[[6.288774,Mpr],[1.274027,2*Dr-Mpr],[0.658314,2*Dr],[0.213618,2*Mpr],[-0.185116,Mr],[-0.114332,2*Fr],[0.058793,2*Dr-2*Mpr],[0.057066,2*Dr-Mr-Mpr],[0.053322,2*Dr+Mpr],[0.045758,2*Dr-Mr],[-0.040923,Mr-Mpr],[-0.034720,Dr],[-0.030383,Mr+Mpr],[0.015327,2*Dr-2*Fr],[-0.012528,2*Fr+Mpr],[-0.010980,2*Fr-Mpr],[0.010675,4*Dr-Mpr],[0.010034,3*Mpr],[0.008548,4*Dr-2*Mpr],[-0.007888,2*Dr+Mr-Mpr],[-0.006766,2*Dr+Mr],[-0.005163,Dr-Mpr],[0.004987,Dr+Mr],[0.004036,2*Dr-Mr+Mpr],[0.003994,2*Dr+2*Mpr],[0.003861,4*Dr],[0.003665,2*Dr-3*Mpr],[-0.002689,Mr-2*Mpr],[-0.002602,2*Dr-2*Fr+Mpr]];for(const[a,angle]of terms)lon+=a*Math.sin(angle);return mod360(lon);}
-function venusLongitude(T){return mod360(trueAnomaly(mod360(212.2606+58517.8039*T),0.00677323-0.00004938*T)+131.563707);}
-function marsLongitude(T){return mod360(trueAnomaly(mod360(19.373+19140.2993*T),0.09341233-0.00011199*T)+336.04084);}
-function jupiterLongitude(T){return mod360(trueAnomaly(mod360(20.9202+3034.9057*T),0.04849485+0.00016323*T)+14.27495);}
-function saturnLongitude(T){return mod360(trueAnomaly(mod360(317.9232+1221.5515*T),0.05554814-0.00034664*T)+93.05714);}
-function neptuneLongitude(T){return mod360(trueAnomaly(mod360(304.3486+218.461*T),0.00895439+0.00000818*T)+44.97135);}
+// ── Geocentric ephemeris — JPL approximate Keplerian elements (Standish),
+// valid 1800–2050. Heliocentric positions for the planet and for Earth are
+// computed from osculating elements, then differenced to give the geocentric
+// ecliptic longitude astrology actually uses — so retrogrades are real.
+const KEPLER_ELEMENTS={
+  // [a, aDot, e, eDot, I, IDot, L, LDot, peri, periDot, node, nodeDot]
+  Mercury:[0.38709927,0.00000037,0.20563593,0.00001906,7.00497902,-0.00594749,252.25032350,149472.67411175,77.45779628,0.16047689,48.33076593,-0.12534081],
+  Venus:[0.72333566,0.00000390,0.00677672,-0.00004107,3.39467605,-0.00078890,181.97909950,58517.81538729,131.60246718,0.00268329,76.67984255,-0.27769418],
+  Earth:[1.00000261,0.00000562,0.01671123,-0.00004392,-0.00001531,-0.01294668,100.46457166,35999.37244981,102.93768193,0.32327364,0,0],
+  Mars:[1.52371034,0.00001847,0.09339410,0.00007882,1.84969142,-0.00813131,-4.55343205,19140.30268499,-23.94362959,0.44441088,49.55953891,-0.29257343],
+  Jupiter:[5.20288700,-0.00011607,0.04838624,-0.00013253,1.30439695,-0.00183714,34.39644051,3034.74612775,14.72847983,0.21252668,100.47390909,0.20469106],
+  Saturn:[9.53667594,-0.00125060,0.05386179,-0.00050991,2.48599187,0.00193609,49.95424423,1222.49362201,92.59887831,-0.41897216,113.66242448,-0.28867794],
+  Uranus:[19.18916464,-0.00196176,0.04725744,-0.00004397,0.77263783,-0.00242939,313.23810451,428.48202785,170.95427630,0.40805281,74.01692503,0.04240589],
+  Neptune:[30.06992276,0.00026291,0.00859048,0.00005105,1.77004347,0.00035372,-55.12002969,218.45945325,44.96476227,-0.32241464,131.78422574,-0.00508664],
+  Pluto:[39.48211675,-0.00031596,0.24882730,0.00005170,17.14001206,0.00004818,238.92903833,145.20780515,224.06891629,-0.04062942,110.30393684,-0.01183482],
+};
+function keplerE(Mdeg,e){let M=toRad(mod360(Mdeg)),E=M+e*Math.sin(M);for(let i=0;i<12;i++){const dE=(M-(E-e*Math.sin(E)))/(1-e*Math.cos(E));E+=dE;if(Math.abs(dE)<1e-9)break;}return E;}
+function heliocentricXYZ(name,T){
+  const el=KEPLER_ELEMENTS[name];
+  const a=el[0]+el[1]*T, e=el[2]+el[3]*T, I=toRad(el[4]+el[5]*T),
+        L=el[6]+el[7]*T, peri=el[8]+el[9]*T, node=toRad(el[10]+el[11]*T);
+  const w=toRad(peri)-node, E=keplerE(L-peri,e);
+  const xp=a*(Math.cos(E)-e), yp=a*Math.sqrt(1-e*e)*Math.sin(E);
+  const cw=Math.cos(w),sw=Math.sin(w),cn=Math.cos(node),sn=Math.sin(node),ci=Math.cos(I),si=Math.sin(I);
+  return {x:(cw*cn-sw*sn*ci)*xp+(-sw*cn-cw*sn*ci)*yp,
+          y:(cw*sn+sw*cn*ci)*xp+(-sw*sn+cw*cn*ci)*yp,
+          z:sw*si*xp+cw*si*yp};
+}
+// Standish elements are referenced to the J2000 ecliptic; tropical astrology
+// wants equinox-of-date, so precession in longitude is added back.
+function geoLongitude(name,T){const p=heliocentricXYZ(name,T),g=heliocentricXYZ('Earth',T);return mod360(toDeg(Math.atan2(p.y-g.y,p.x-g.x))+1.3969713*T+0.0003086*T*T);}
+// Black Moon Lilith — mean lunar apogee (perigee series + 180°)
+function meanLilith(T){return mod360(83.3532465+4069.0137287*T-0.0103200*T*T+180);}
 function northNode(T){return mod360(125.0445479-1934.1362608*T+0.0020762*T*T);}
-function computePlanets(jd){const T=julianCenturies(jd);return{Sun:sunLongitude(T),Moon:moonLongitude(T),Venus:venusLongitude(T),Mars:marsLongitude(T),Jupiter:jupiterLongitude(T),Saturn:saturnLongitude(T),Neptune:neptuneLongitude(T),NorthNode:northNode(T)};}
+// Positions depend only on the instant, so cache by Julian Day — the
+// eight-tone scan, applying-aspect probes and retrograde probes all share it.
+const EPHEM_CACHE=new Map();
+function computePlanets(jd){
+  const key=Math.round(jd*1e6);
+  const hit=EPHEM_CACHE.get(key); if(hit)return hit;
+  const T=julianCenturies(jd);
+  const out={Sun:sunLongitude(T),Moon:moonLongitude(T),
+    Mercury:geoLongitude('Mercury',T),Venus:geoLongitude('Venus',T),Mars:geoLongitude('Mars',T),
+    Jupiter:geoLongitude('Jupiter',T),Saturn:geoLongitude('Saturn',T),Uranus:geoLongitude('Uranus',T),
+    Neptune:geoLongitude('Neptune',T),Pluto:geoLongitude('Pluto',T),
+    Lilith:meanLilith(T),NorthNode:northNode(T)};
+  if(EPHEM_CACHE.size>50000)EPHEM_CACHE.clear();
+  EPHEM_CACHE.set(key,out);
+  return out;
+}
 function ascendant(jd,lat,lng){const T=julianCenturies(jd);let GMST=280.46061837+360.98564736629*(jd-2451545)+0.000387933*T*T-T*T*T/38710000;const RAMC=toRad(mod360(GMST+lng)),latR=toRad(lat),e=toRad(23.4392911);return mod360(toDeg(Math.atan2(-Math.cos(RAMC),Math.sin(e)*Math.tan(latR)+Math.cos(e)*Math.sin(RAMC))));}
 function houseOf(lon,asc){return Math.floor(mod360(lon-asc)/30)+1;}
 function signOf(lon){return SIGNS[Math.floor(lon/30)];}
@@ -210,6 +252,7 @@ function signOf(lon){return SIGNS[Math.floor(lon/30)];}
 const DIGNITY={
   Sun:{domicile:['Leo'],exaltation:['Aries'],detriment:['Aquarius'],fall:['Libra']},
   Moon:{domicile:['Cancer'],exaltation:['Taurus'],detriment:['Capricorn'],fall:['Scorpio']},
+  Mercury:{domicile:['Gemini','Virgo'],exaltation:['Virgo'],detriment:['Sagittarius','Pisces'],fall:['Pisces']},
   Venus:{domicile:['Taurus','Libra'],exaltation:['Pisces'],detriment:['Aries','Scorpio'],fall:['Virgo']},
   Mars:{domicile:['Aries','Scorpio'],exaltation:['Capricorn'],detriment:['Libra','Taurus'],fall:['Cancer']},
   Jupiter:{domicile:['Sagittarius','Pisces'],exaltation:['Cancer'],detriment:['Gemini','Virgo'],fall:['Capricorn']},
@@ -225,8 +268,15 @@ const ASPECTS=[
   {name:'Sextile',sym:'✶',angle:60,orbMax:6,quality:'ease'},
   {name:'Quincunx',sym:'⚻',angle:150,orbMax:3,quality:'adjustment'},
 ];
-function findAspect(lonA,lonB){const diff=Math.abs(lonA-lonB)%360,sep=diff>180?360-diff:diff;for(const asp of ASPECTS){const orb=Math.abs(sep-asp.angle);if(orb<=asp.orbMax)return{...asp,orb:parseFloat(orb.toFixed(2)),orbRatio:orb/asp.orbMax};}return null;}
+function findAspect(lonA,lonB,orbScale=1){const diff=Math.abs(lonA-lonB)%360,sep=diff>180?360-diff:diff;for(const asp of ASPECTS){const cap=asp.orbMax*orbScale,orb=Math.abs(sep-asp.angle);if(orb<=cap)return{...asp,orb:parseFloat(orb.toFixed(2)),orbRatio:orb/cap};}return null;}
 function orbFactor(r){return Math.cos(r*Math.PI/2);}
+// Per-body orb allowances: luminaries speak loudest, calculated points whisper.
+const ORB_SCALE={Sun:1,Moon:1,Mercury:0.9,Venus:0.95,Mars:0.95,Jupiter:0.85,Saturn:0.85,Uranus:0.75,Neptune:0.75,Pluto:0.75,Lilith:0.55,NorthNode:0.6,Asc:0.8};
+function aspectBetween(nameA,lonA,nameB,lonB){return findAspect(lonA,lonB,Math.min(ORB_SCALE[nameA]??0.85,ORB_SCALE[nameB]??0.85));}
+function angularSep(a,b){const d=Math.abs(a-b)%360;return d>180?360-d:d;}
+// Shorter-arc midpoint of two zodiacal points
+function midpoint(a,b){const d=mod360(b-a);return d<=180?mod360(a+d/2):mod360(b+mod360(a-b)/2);}
+const r1=x=>parseFloat(x.toFixed(1));
 
 // ═══════════════════════════════════════════════════════════════
 // TONE SYSTEM
@@ -260,23 +310,34 @@ function toneWeights() {
     saturnPen:   1,
     conjBonus:   1,
     jupBonus:    1,
+    plutoBonus:  1,
+    uranusBonus: 1,
+    lilithBonus: 1,
+    neptuneBonus:1,
   };
   if (TONE.t1 === 'martial') {
     w.marsBonus = 1.5;
     w.venusBonus = 0.75;
+    w.lilithBonus = 1.25;
   } else {
     w.venusBonus = 1.5;
     w.marsBonus = 0.75;
     w.jupBonus = 1.3;
+    w.neptuneBonus = 1.25;
   }
   if (TONE.t2 === 'deep') {
     w.conjBonus = 1.4;
+    w.plutoBonus = 1.35;
+    w.uranusBonus = 0.9;
   } else {
     w.jupBonus *= 1.4;
+    w.uranusBonus = 1.25;
+    w.plutoBonus = 0.8;
   }
   if (TONE.t3 === 'tension') {
     w.tensionAsp = 0.5;
     w.saturnPen = 0.3;
+    w.lilithBonus *= 1.15;
   } else {
     w.tensionAsp = 0;
     w.saturnPen = 1.0;
@@ -288,28 +349,98 @@ function toneWeights() {
 // RETROGRADE DETECTION
 // ═══════════════════════════════════════════════════════════════
 
-function isRetrograde(planetFn, jd) {
-  const T = julianCenturies;
-  const before = planetFn(T(jd - 0.5));
-  const after  = planetFn(T(jd + 0.5));
-  let delta = after - before;
-  if (delta > 180)  delta -= 360;
-  if (delta < -180) delta += 360;
-  return delta < 0;
-}
-
 function computeRetrogrades(jd) {
-  return {
-    Venus:   isRetrograde(venusLongitude,   jd),
-    Mars:    isRetrograde(marsLongitude,    jd),
-    Jupiter: isRetrograde(jupiterLongitude, jd),
-    Saturn:  isRetrograde(saturnLongitude,  jd),
-    Mercury: isRetrograde(mercuryRetrograde, jd),
-  };
+  const before = computePlanets(jd - 0.5), after = computePlanets(jd + 0.5), rx = {};
+  for (const p of ['Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto']) {
+    let d = after[p] - before[p];
+    if (d > 180) d -= 360;
+    if (d < -180) d += 360;
+    rx[p] = d < 0;
+  }
+  return rx;
 }
 
-function mercuryRetrograde(T) {
-  return mod360(trueAnomaly(mod360(174.7948 + 149472.5159*T), 0.20563069 + 0.00002527*T) + 77.45779628);
+// ═══════════════════════════════════════════════════════════════
+// ASPECT & LUNAR HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+// Aspects that are perfecting (applying) carry more charge than those
+// already separating. Probe the transiting body a fraction of a day ahead.
+function applyingFactor(jd, tName, tLon, targetLon, asp) {
+  const later = computePlanets(jd + 0.04)[tName];
+  if (later === undefined) return 1;
+  const dNow   = Math.abs(angularSep(tLon,  targetLon) - asp.angle);
+  const dLater = Math.abs(angularSep(later, targetLon) - asp.angle);
+  if (dLater < dNow - 1e-4) return 1.12;
+  if (dLater > dNow + 1e-4) return 0.88;
+  return 1;
+}
+
+function moonPhase(sunLon, moonLon) {
+  const elong = mod360(moonLon - sunLon);
+  const illum = (1 - Math.cos(toRad(elong))) / 2;
+  const names = ['New','Waxing Crescent','First Quarter','Waxing Gibbous','Full','Waning Gibbous','Last Quarter','Waning Crescent'];
+  return { elong, illum, waxing: elong < 180, name: names[Math.floor(mod360(elong + 22.5) / 45)] };
+}
+
+// True void-of-course: the Moon perfects no Ptolemaic aspect to any planet
+// before leaving its sign. Planets are treated as fixed over the Moon's
+// remaining arc — they drift well under the orb tolerance in that window.
+function voidOfCourse(trans) {
+  const remaining = 30 - (trans.Moon % 30);
+  for (const b of ['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto']) {
+    for (const ang of [0, 60, 90, 120, 180]) {
+      for (const s of (ang === 0 || ang === 180 ? [1] : [1, -1])) {
+        const delta = mod360(trans[b] + s * ang - trans.Moon);
+        if (delta > 1e-6 && delta <= remaining) return false;
+      }
+    }
+  }
+  return true;
+}
+
+const EROTIC_BODIES = ['Venus','Mars','Pluto','Lilith'];
+// How much an aspect's geometry contributes. Friction between erotic bodies
+// is never zeroed out — a Venus–Mars square carries heat in any tone.
+function qualityWeight(asp, nameA, nameB, W) {
+  const q = asp.quality;
+  if (q === 'fusion')  return W.conjBonus;
+  if (q === 'harmony') return 1;
+  if (q === 'ease')    return 0.75;
+  if (q === 'tension' || q === 'friction') {
+    const erotic = EROTIC_BODIES.includes(nameA) && EROTIC_BODIES.includes(nameB);
+    if (TONE.t3 === 'tension') return erotic ? 0.8 : 0.5;
+    return erotic ? 0.35 : 0;
+  }
+  return 0.2; // quincunx — the itch of near-miss
+}
+
+// Natal-to-natal synastry, shared by the score breakdown and the calendar
+// chart so the two can never drift apart.
+function natalSynastryItems(wN, mN, W) {
+  const items = []; let pts = 0;
+  const pairs=[['Venus','Mars',9],['Mars','Venus',9],['Venus','Pluto',6],['Pluto','Venus',6],['Mars','Pluto',5],['Pluto','Mars',5],['Sun','Moon',5],['Moon','Sun',5],['Moon','Pluto',4],['Pluto','Moon',4],['Venus','Venus',4],['Mars','Mars',3.5],['Lilith','Mars',4],['Mars','Lilith',4],['Lilith','Venus',3.5],['Venus','Lilith',3.5],['Venus','Neptune',3],['Neptune','Venus',3],['Sun','Venus',3],['Venus','Sun',3],['Moon','Venus',2.5],['Moon','Mars',2.5],['Venus','Asc',3.5],['Asc','Venus',3.5],['Mars','Asc',3.5],['Asc','Mars',3.5],['Venus','NorthNode',2.5],['NorthNode','Venus',2.5]];
+  for (const [wp, mp, baseW] of pairs) {
+    const wl = wN[wp], ml = mN[mp];
+    if (wl === undefined || ml === undefined) continue;
+    const a = aspectBetween(wp, wl, mp, ml); if (!a) continue;
+    const qw = qualityWeight(a, wp, mp, W); if (qw <= 0) continue;
+    const v = r1(baseW * qw * orbFactor(a.orbRatio));
+    if (v < 0.3) continue;
+    pts += v;
+    items.push({label:`${P.w.name} ${wp==='Asc'?'Ascendant':wp} ${a.sym} ${P.m.name} ${mp==='Asc'?'Ascendant':mp}`,pts:v,max:baseW,isUniversal:false,rationale:`${a.name}, orb ${a.orb}° — natal bond`});
+  }
+  // Erotic mutual reception: one chart's Venus in a Mars sign while the other
+  // chart's Mars sits in a Venus sign — each holds the key to the other.
+  const marsSigns=['Aries','Scorpio'], venusSigns=['Taurus','Libra'];
+  for (const [vLon, mLon, lbl] of [[wN.Venus, mN.Mars, `${P.w.name} Venus ⇄ ${P.m.name} Mars`],[mN.Venus, wN.Mars, `${P.m.name} Venus ⇄ ${P.w.name} Mars`]]) {
+    if (marsSigns.includes(signOf(vLon)) && venusSigns.includes(signOf(mLon))) {
+      pts += 3;
+      items.push({label:`Erotic mutual reception · ${lbl}`,pts:3,max:3,isUniversal:false,rationale:`Venus in ${signOf(vLon)} (a Mars sign) while Mars sits in ${signOf(mLon)} (a Venus sign) — each rules the other's desire`});
+    }
+  }
+  items.sort((a,b)=>b.pts-a.pts);
+  return { items, pts };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -324,66 +455,75 @@ function scoreDateTime(jd, wN, mN, wLat, wLng) {
   const categories = [];
   let grandTotal = 0;
 
-  function aspScore(asp, baseGood, baseTension) {
-    if (!asp) return 0;
-    const q = asp.quality;
-    const of = orbFactor(asp.orbRatio);
-    let base = 0;
-    if (q==='fusion')   base = baseGood * (1 + (W.conjBonus-1));
-    else if (q==='harmony' || q==='ease') base = baseGood;
-    else if (q==='tension' || q==='friction') base = baseGood * W.tensionAsp;
-    return base * of;
-  }
-
   const venusRxMod = RX.Venus   ? 0.6 : 1.0;
   const marsRxMod  = RX.Mars    ? 0.6 : 1.0;
   const jupRxMod   = RX.Jupiter ? 0.85 : 1.0;
+  const rxModFor   = (p) => p==='Venus'?venusRxMod : p==='Mars'?marsRxMod : p==='Jupiter'?jupRxMod : 1;
+  const toneModFor = (p) => p==='Mars'?W.marsBonus : p==='Venus'?W.venusBonus : p==='Jupiter'?W.jupBonus
+    : p==='Pluto'?W.plutoBonus : p==='Uranus'?W.uranusBonus : p==='Lilith'?W.lilithBonus
+    : p==='Neptune'?W.neptuneBonus : 1;
 
-  // ── CAT 1: Venus-Mars Dynamics (max 30) ──────────────────────
+  // ── CAT 1: Erotic Weather of the Sky (max 25) ────────────────
   {
     const items = []; let pts = 0;
 
-    const asp = findAspect(trans.Venus, trans.Mars);
-    if (asp) {
-      const base = asp.quality==='fusion'?12 : asp.quality==='harmony'?10 : asp.quality==='ease'?7 : (asp.quality==='tension'||asp.quality==='friction')?8:2;
+    const vm = aspectBetween('Venus', trans.Venus, 'Mars', trans.Mars);
+    if (vm) {
       const vd=dignityOf('Venus',trans.Venus), md=dignityOf('Mars',trans.Mars);
       const digMod=(vd.mod+md.mod)/2;
-      let val = aspScore(asp, base, base) * digMod;
-      val *= (W.marsBonus * marsRxMod + W.venusBonus * venusRxMod) / 2;
-      const v=parseFloat(val.toFixed(1)); pts+=v;
+      const toneM=(W.marsBonus*marsRxMod + W.venusBonus*venusRxMod)/2;
+      const v=r1(11*qualityWeight(vm,'Venus','Mars',W)*orbFactor(vm.orbRatio)*digMod*toneM);
+      pts+=v;
       const rxNote = [RX.Venus?'♀℞':'', RX.Mars?'♂℞':''].filter(Boolean).join(' ');
-      items.push({label:`Transit Venus ${asp.sym} Transit Mars${rxNote?' · '+rxNote:''}`,pts:v,max:12,isUniversal:true,
-        rationale:`${asp.name}, orb ${asp.orb}° · Venus ${vd.label}, Mars ${md.label}${RX.Venus?' · Venus ℞ ×0.6':''}${RX.Mars?' · Mars ℞ ×0.6':''}`});
-    } else items.push({label:'Transit Venus ♀ ♂ Transit Mars',pts:0,max:12,isUniversal:true,rationale:'No aspect in sky at this hour'});
+      items.push({label:`Transit Venus ${vm.sym} Transit Mars${rxNote?' · '+rxNote:''}`,pts:v,max:11,isUniversal:true,
+        rationale:`${vm.name}, orb ${vm.orb}° · Venus ${vd.label}, Mars ${md.label}${(vm.quality==='tension'||vm.quality==='friction')?' · friction counted — Venus–Mars heat survives every tone':''}${RX.Venus?' · Venus ℞ ×0.6':''}${RX.Mars?' · Mars ℞ ×0.6':''}`});
+    } else items.push({label:'Transit Venus ♀ ♂ Transit Mars',pts:0,max:11,isUniversal:true,rationale:'No aspect in sky at this hour'});
 
-    const asp2 = findAspect(trans.Venus, mN.Mars);
-    if (asp2) {
-      const base = asp2.quality==='fusion'?9:asp2.quality==='harmony'?8:asp2.quality==='ease'?5:6;
-      const vd = dignityOf('Venus',trans.Venus);
-      const v = parseFloat((aspScore(asp2,base,base)*vd.mod*W.venusBonus*venusRxMod).toFixed(1));
+    for (const p of ['Venus','Mars']) {
+      const a=aspectBetween('Pluto',trans.Pluto,p,trans[p]);
+      if (!a) continue;
+      const qw=qualityWeight(a,'Pluto',p,W); if(qw<=0)continue;
+      const v=r1(5*qw*orbFactor(a.orbRatio)*W.plutoBonus*rxModFor(p));
+      if(v<0.3)continue;
       pts+=v;
-      items.push({label:`Transit Venus${RX.Venus?' ℞':''} ${asp2.sym} ${P.m.name} natal Mars`,pts:v,max:9,isUniversal:false,
-        rationale:`${asp2.name}, orb ${asp2.orb}° · Venus ${vd.label} · ×${(W.venusBonus*venusRxMod).toFixed(2)}${RX.Venus?' (retrograde)':''}`});
-    } else items.push({label:`Transit Venus → ${P.m.name} natal Mars`,pts:0,max:9,isUniversal:false,rationale:'No aspect'});
+      items.push({label:`Transit Pluto ${a.sym} Transit ${p}`,pts:v,max:5,isUniversal:true,
+        rationale:`${a.name}, orb ${a.orb}° — depth charge under the ${p==='Venus'?'attraction':'drive'} · tone ×${W.plutoBonus.toFixed(2)}`});
+    }
 
-    const asp3 = findAspect(trans.Mars, wN.Venus);
-    if (asp3) {
-      const base = asp3.quality==='fusion'?9:asp3.quality==='harmony'?8:asp3.quality==='ease'?5:6;
-      const md = dignityOf('Mars',trans.Mars);
-      const v = parseFloat((aspScore(asp3,base,base)*md.mod*W.marsBonus*marsRxMod).toFixed(1));
-      pts+=v;
-      items.push({label:`Transit Mars${RX.Mars?' ℞':''} ${asp3.sym} ${P.w.name} natal Venus`,pts:v,max:9,isUniversal:false,
-        rationale:`${asp3.name}, orb ${asp3.orb}° · Mars ${md.label} · ×${(W.marsBonus*marsRxMod).toFixed(2)}${RX.Mars?' (retrograde)':''}`});
-    } else items.push({label:`Transit Mars → ${P.w.name} natal Venus`,pts:0,max:9,isUniversal:false,rationale:'No aspect'});
+    const uv=aspectBetween('Uranus',trans.Uranus,'Venus',trans.Venus);
+    if (uv && ['fusion','harmony','ease'].includes(uv.quality)) {
+      const v=r1(4*qualityWeight(uv,'Uranus','Venus',W)*orbFactor(uv.orbRatio)*W.uranusBonus);
+      if(v>=0.3){
+        pts+=v;
+        items.push({label:`Transit Uranus ${uv.sym} Transit Venus`,pts:v,max:4,isUniversal:true,
+          rationale:`${uv.name}, orb ${uv.orb}° — electric spark, attraction out of nowhere · tone ×${W.uranusBonus.toFixed(2)}`});
+      }
+    }
 
-    const catPts=parseFloat(Math.min(pts,30).toFixed(1)); grandTotal+=catPts;
-    categories.push({name:'I · Venus–Mars Dynamics',points:catPts,maxPoints:30,items});
+    for (const p of ['Venus','Mars']) {
+      const a=aspectBetween('Lilith',trans.Lilith,p,trans[p]);
+      if (a && (a.name==='Conjunction'||a.name==='Opposition')) {
+        const v=r1(4*orbFactor(a.orbRatio)*W.lilithBonus);
+        pts+=v;
+        items.push({label:`Black Moon Lilith ${a.sym} Transit ${p}`,pts:v,max:4,isUniversal:true,
+          rationale:`${a.name}, orb ${a.orb}° — the untamed pole of desire touches ${p} · tone ×${W.lilithBonus.toFixed(2)}`});
+      }
+    }
+
+    const catPts=r1(Math.min(pts,25)); grandTotal+=catPts;
+    categories.push({name:'I · Erotic Weather of the Sky',points:catPts,maxPoints:25,items});
   }
 
-  // ── CAT 2: Moon Placement (max 20) ──────────────────────────
+  // ── CAT 2: Lunar Current (max 18) ───────────────────────────
   {
     const items = []; let pts = 0;
     const moonSign = signOf(trans.Moon);
+
+    const ph = moonPhase(trans.Sun, trans.Moon);
+    const phasePts = r1(Math.min(3.5*ph.illum + (ph.waxing?0.5:0), 4));
+    pts += phasePts;
+    items.push({label:`${ph.name} Moon · ${Math.round(ph.illum*100)}% illuminated`,pts:phasePts,max:4,isUniversal:true,
+      rationale:`Lunar tide ${ph.waxing?'building (waxing +0.5)':'ebbing (waning)'} — emotional charge crests at the Full Moon`});
 
     const SIGN_RULER = {
       Aries:'Mars', Taurus:'Venus', Gemini:'Mercury', Cancer:'Moon',
@@ -423,115 +563,193 @@ function scoreDateTime(jd, wN, mN, wLat, wLng) {
                          : 1.0;
     const moonRuler = SIGN_RULER[moonSign];
     const moonNatHouse = SIGN_NATURAL_HOUSE[moonSign];
-    const msvRaw = 6 * rulerToneWeight(moonRuler) * houseToneValence(moonNatHouse) * moonDignityMod;
-    let msv = parseFloat(Math.min(msvRaw, 10).toFixed(1));
+    const msv = r1(Math.min(4 * rulerToneWeight(moonRuler) * houseToneValence(moonNatHouse) * moonDignityMod, 5));
     pts += msv;
-    items.push({label:`Moon in ${moonSign}`,pts:msv,max:10,isUniversal:true,
+    items.push({label:`Moon in ${moonSign}`,pts:msv,max:5,isUniversal:true,
       rationale:`Ruler: ${moonRuler} (×${rulerToneWeight(moonRuler).toFixed(2)}) · natural H${moonNatHouse} valence ×${houseToneValence(moonNatHouse).toFixed(2)} · dignity ${moonDignityMod===1?'peregrine':'mod ×'+moonDignityMod}`});
 
     const moonH = houseOf(trans.Moon, asc_w);
     const angularBonus = [1,4,7,10].includes(moonH) ? 1.2 : [2,5,8,11].includes(moonH) ? 1.0 : 0.75;
-    const mhvRaw = 8 * houseToneValence(moonH) * angularBonus;
-    let mhv = parseFloat(Math.min(Math.max(mhvRaw, 0), 8).toFixed(1));
+    const mhv = r1(Math.min(Math.max(4 * houseToneValence(moonH) * angularBonus, 0), 4));
     pts += mhv;
-    items.push({label:`Moon in House ${moonH} (${P.w.pos} chart)`,pts:mhv,max:8,isUniversal:false,
+    items.push({label:`Moon in House ${moonH} of the event chart`,pts:mhv,max:4,isUniversal:false,
       rationale:`House ${moonH} tone valence ×${houseToneValence(moonH).toFixed(2)} · ${[1,4,7,10].includes(moonH)?'angular +20%':[2,5,8,11].includes(moonH)?'succedent neutral':'cadent −25%'}`});
 
-    if ((trans.Moon%30)>27) { pts-=5; items.push({label:'Moon void-of-course',pts:-5,max:0,isUniversal:true,rationale:'Past final aspect in sign'}); }
-
-    for (const [target,tlon] of [['Transit Venus',trans.Venus],['Transit Mars',trans.Mars]]) {
-      const a = findAspect(trans.Moon,tlon);
-      if (a && (a.quality==='harmony'||a.quality==='ease'||a.quality==='fusion'||(W.tensionAsp>0&&(a.quality==='tension'||a.quality==='friction')))) {
-        const v=parseFloat((2*orbFactor(a.orbRatio)*(W.tensionAsp>0&&(a.quality==='tension'||a.quality==='friction')?W.tensionAsp:1)).toFixed(1));
-        pts+=v; items.push({label:`Moon ${a.sym} ${target}`,pts:v,max:2,isUniversal:true,rationale:`${a.name}, orb ${a.orb}°`});
-      }
+    for (const [pp, natal] of [[P.w, wN], [P.m, mN]]) {
+      if (natal.Asc === undefined) continue;
+      const h = houseOf(trans.Moon, natal.Asc);
+      const hv = h===8?2 : h===5?1.6 : h===7?1.4 : h===1?1.2 : (h===12&&TONE.t2==='deep')?1.2 : h===4?0.8 : 0.3;
+      const v = r1(hv); pts += v;
+      items.push({label:`Moon through ${pp.name} natal H${h}`,pts:v,max:2,isUniversal:false,
+        rationale: h===8?'Their natal house of merging — feeling runs deep and private'
+                 : h===5?'Their natal house of pleasure — feeling turns playful'
+                 : h===7?'Their natal house of the partner — attention turns relational'
+                 : h===1?'Crossing their natal Ascendant — emotionally present, unguarded'
+                 : (h===12&&TONE.t2==='deep')?'Their natal 12th — hidden currents, welcome under a deep tone'
+                 : h===4?'Their natal 4th — private, domestic warmth'
+                 : 'A quieter natal house for erotic weather'});
     }
 
-    const catPts=parseFloat(Math.min(pts,20).toFixed(1)); grandTotal+=catPts;
-    categories.push({name:'II · Moon Placement & Quality',points:catPts,maxPoints:20,items});
+    for (const t of ['Venus','Mars']) {
+      const a = aspectBetween('Moon', trans.Moon, t, trans[t]);
+      if (!a) continue;
+      const qw = qualityWeight(a, 'Moon', t, W); if (qw <= 0) continue;
+      const af = applyingFactor(jd, 'Moon', trans.Moon, trans[t], a);
+      const v = r1(1.8 * qw * orbFactor(a.orbRatio) * af);
+      if (v < 0.2) continue;
+      pts += v;
+      items.push({label:`Moon ${a.sym} Transit ${t}${af>1?' · applying':af<1?' · separating':''}`,pts:v,max:2,isUniversal:true,
+        rationale:`${a.name}, orb ${a.orb}° · ${af>1?'applying ×1.12 — perfecting soon':af<1?'separating ×0.88 — already past exact':'holding orb'}`});
+    }
+
+    if (voidOfCourse(trans)) {
+      pts -= 4;
+      items.push({label:'Moon void-of-course',pts:-4,max:0,isUniversal:true,
+        rationale:`No aspect left to perfect before the Moon leaves ${moonSign} — plans drift, momentum stalls`});
+    }
+
+    const catPts=r1(Math.min(pts,18)); grandTotal+=catPts;
+    categories.push({name:'II · Lunar Current',points:catPts,maxPoints:18,items});
   }
 
-  // ── CAT 3: Natal Synastry Baseline (max 20) ─────────────────
+  // ── CAT 3: Natal Synastry Baseline (max 15) ─────────────────
   {
-    const items = []; let pts = 0;
-    const pairs=[['Venus','Mars',10],['Mars','Venus',10],['Sun','Moon',6],['Moon','Sun',6],['Venus','Venus',5],['Mars','Mars',4],['Sun','Venus',4],['Venus','Sun',4],['Moon','Venus',3],['Moon','Mars',3],['Sun','Sun',3]];
-    for (const [wp,mp,baseW] of pairs) {
-      const wl=wN[wp],ml=mN[mp];
-      if (wl===undefined||ml===undefined) continue;
-      const a=findAspect(wl,ml); if (!a) continue;
-      const qMod=(['harmony','fusion','ease'].includes(a.quality))?1:
-                 (a.quality==='tension'||a.quality==='friction')?W.tensionAsp:0.5;
-      const v=parseFloat((baseW*qMod*orbFactor(a.orbRatio)).toFixed(1));
-      if (v>=0.3) { pts+=v; items.push({label:`${P.w.name} ${wp} ${a.sym} ${P.m.name} ${mp}`,pts:v,max:baseW,isUniversal:false,rationale:`${a.name}, orb ${a.orb}° — natal bond`}); }
-    }
-    const catPts=parseFloat(Math.min(pts,20).toFixed(1)); grandTotal+=catPts;
-    categories.push({name:'III · Natal Synastry Baseline',points:catPts,maxPoints:20,items:items.slice(0,7)});
+    const { items, pts } = natalSynastryItems(wN, mN, W);
+    const catPts = r1(Math.min(pts, 15)); grandTotal += catPts;
+    categories.push({name:'III · Natal Synastry Baseline',points:catPts,maxPoints:15,items:items.slice(0,8)});
   }
 
-  // ── CAT 4: Transit Activations of Personal Points (max 15) ──
+  // ── CAT 4: Transit Activations of Personal Points (max 22) ──
+  // Every check runs for BOTH charts — no assumed direction of desire.
   {
     const items = []; let pts = 0;
     const checks=[
-      {t:'Venus',n:'Moon', who:P.w.name, nLon:wN.Moon,  max:5},
-      {t:'Mars', n:'Moon', who:P.m.name, nLon:mN.Moon,  max:5},
-      {t:'Venus',n:'Sun',  who:P.w.name, nLon:wN.Sun,   max:4},
-      {t:'Mars', n:'Sun',  who:P.m.name, nLon:mN.Sun,   max:4},
-      {t:'Venus',n:'Venus',who:P.w.name, nLon:wN.Venus,  max:3},
-      {t:'Mars', n:'Mars', who:P.m.name, nLon:mN.Mars,   max:3},
-      {t:'Jupiter',n:'Venus',who:P.w.name,nLon:wN.Venus, max:3},
-      {t:'Jupiter',n:'Mars', who:P.m.name,nLon:mN.Mars,  max:3},
+      ['Venus','Mars',4.5],['Mars','Venus',4.5],['Pluto','Venus',4],['Pluto','Mars',3],
+      ['Venus','Moon',3],['Mars','Moon',3],['Uranus','Venus',3],
+      ['Venus','Asc',3],['Mars','Asc',3],['Pluto','Asc',2.5],
+      ['Venus','Sun',2],['Mars','Sun',2],['Jupiter','Venus',2],
+      ['Venus','Venus',2],['Mars','Mars',2],['Lilith','Venus',2],['Lilith','Mars',2],
     ];
-    for (const c of checks) {
-      const a=findAspect(trans[c.t],c.nLon); if (!a) continue;
-      const isGood=['harmony','fusion','ease'].includes(a.quality);
-      const isTense=a.quality==='tension'||a.quality==='friction';
-      if (!isGood && !(isTense && W.tensionAsp>0)) continue;
-      const dg=dignityOf(c.t,trans[c.t]);
-      const rxM = c.t==='Venus'?venusRxMod : c.t==='Mars'?marsRxMod : c.t==='Jupiter'?jupRxMod : 1;
-      let toneM = c.t==='Mars'?W.marsBonus : c.t==='Venus'?W.venusBonus : c.t==='Jupiter'?W.jupBonus : 1;
-      const qM = isGood ? 1 : W.tensionAsp;
-      const v=parseFloat((c.max*orbFactor(a.orbRatio)*dg.mod*toneM*rxM*qM).toFixed(1));
-      pts+=v;
-      const rxFlag = (c.t==='Venus'&&RX.Venus)||(c.t==='Mars'&&RX.Mars)||(c.t==='Jupiter'&&RX.Jupiter);
-      items.push({label:`Transit ${c.t}${rxFlag?' ℞':''} ${a.sym} ${c.who} natal ${c.n}`,pts:v,max:c.max,isUniversal:false,
-        rationale:`${a.name}, orb ${a.orb}° · ${c.t} ${dg.label} · ×${(toneM*rxM).toFixed(2)}${rxFlag?' (retrograde)':''}`});
+    for (const [pp, natal] of [[P.w, wN], [P.m, mN]]) {
+      for (const [t, n, maxPts] of checks) {
+        const nLon = natal[n]; if (nLon === undefined) continue;
+        const a = aspectBetween(t, trans[t], n, nLon); if (!a) continue;
+        // Lilith speaks only in conjunction and opposition
+        const qw = t==='Lilith' ? ((a.name==='Conjunction'||a.name==='Opposition')?1:0)
+                                : qualityWeight(a, t, n, W);
+        if (qw <= 0) continue;
+        const dg = dignityOf(t, trans[t]);
+        const af = applyingFactor(jd, t, trans[t], nLon, a);
+        const v = r1(maxPts * qw * orbFactor(a.orbRatio) * dg.mod * toneModFor(t) * rxModFor(t) * af);
+        if (v < 0.3) continue;
+        pts += v;
+        const rxFlag = RX[t];
+        const ascNote = (n==='Asc' && a.name==='Opposition') ? ' (☌ Descendant — the partner’s door)' : '';
+        items.push({label:`Transit ${t}${rxFlag?' ℞':''} ${a.sym} ${pp.name} natal ${n==='Asc'?'Ascendant':n}${ascNote}`,pts:v,max:maxPts,isUniversal:false,
+          rationale:`${a.name}, orb ${a.orb}° · ${t} ${dg.label} · ${af>1?'applying':af<1?'separating':'held'} ×${(toneModFor(t)*rxModFor(t)*af).toFixed(2)}${rxFlag?' (retrograde)':''}`});
+      }
+      // Venus/Mars moving through this person's erotic natal houses
+      if (natal.Asc !== undefined) {
+        for (const t of ['Venus','Mars']) {
+          const h = houseOf(trans[t], natal.Asc);
+          if (h === 5 || h === 8) {
+            const v = h===8 ? 1.2 : 1; pts += v;
+            items.push({label:`Transit ${t} in ${pp.name} natal H${h}`,pts:v,max:1.2,isUniversal:false,
+              rationale: h===8?'Crossing their house of merging — a slow-burn intimacy field':'Crossing their house of play and pleasure'});
+          }
+        }
+      }
     }
-    const catPts=parseFloat(Math.min(pts,15).toFixed(1)); grandTotal+=catPts;
-    categories.push({name:'IV · Transit Activations of Personal Points',points:catPts,maxPoints:15,items});
+    items.sort((a,b)=>b.pts-a.pts);
+    const catPts=r1(Math.min(pts,22)); grandTotal+=catPts;
+    categories.push({name:'IV · Transit Activations of Personal Points',points:catPts,maxPoints:22,items:items.slice(0,10)});
   }
 
-  // ── CAT 5: Sky Conditions & Dignity (max 15) ────────────────
+  // ── CAT 5: Composite & Midpoint Activations (max 10) ────────
+  // The relationship-as-entity: transits striking the couple's shared
+  // midpoints. Midpoints answer only to tight orbs (2.5° axis, 1.5° square).
+  {
+    const items = []; let pts = 0;
+    const s1 = P.w.short, s2 = P.m.short;
+    const mids = [
+      [`${s1} Venus / ${s2} Mars midpoint`, midpoint(wN.Venus, mN.Mars)],
+      [`${s1} Mars / ${s2} Venus midpoint`, midpoint(wN.Mars, mN.Venus)],
+      ['composite Venus', midpoint(wN.Venus, mN.Venus)],
+      ['composite Mars', midpoint(wN.Mars, mN.Mars)],
+      ['composite Sun', midpoint(wN.Sun, mN.Sun)],
+      ['composite Moon', midpoint(wN.Moon, mN.Moon)],
+    ];
+    const triggers=[['Venus',3.5],['Mars',3.5],['Pluto',3],['Sun',2],['Moon',1.5]];
+    for (const [mLbl, mLon] of mids) {
+      for (const [t, wgt] of triggers) {
+        const sep = angularSep(trans[t], mLon);
+        const axis = Math.min(sep, Math.abs(180 - sep));
+        const sq = Math.abs(90 - sep);
+        let orb=null, orbMax=0, sym='';
+        if (axis <= 2.5)    { orb=axis; orbMax=2.5; sym = sep<=90 ? '☌' : '☍'; }
+        else if (sq <= 1.5) { orb=sq;   orbMax=1.5; sym='□'; }
+        if (orb===null) continue;
+        const v = r1((sym==='□'?wgt*0.6:wgt) * orbFactor(orb/orbMax) * toneModFor(t) * rxModFor(t));
+        if (v < 0.3) continue;
+        pts += v;
+        items.push({label:`Transit ${t} ${sym} ${mLbl}`,pts:v,max:wgt,isUniversal:false,
+          rationale:`Orb ${orb.toFixed(2)}° — the relationship-as-entity is struck directly`});
+      }
+    }
+    if (!items.length) items.push({label:'No transits on couple midpoints',pts:0,max:0,isUniversal:false,rationale:'The composite points rest quiet at this hour'});
+    const catPts=r1(Math.min(pts,10)); grandTotal+=catPts;
+    categories.push({name:'V · Composite & Midpoint Activations',points:catPts,maxPoints:10,items});
+  }
+
+  // ── CAT 6: Sky Conditions & Dignity (max 10) ────────────────
   {
     const items = []; let pts = 0;
     const vd=dignityOf('Venus',trans.Venus), md=dignityOf('Mars',trans.Mars);
     const vDigMod = W.venusBonus * venusRxMod;
     const mDigMod = W.marsBonus  * marsRxMod;
-    if (vd.label==='Domicile')   {const p=parseFloat((4*vDigMod).toFixed(1));pts+=p;items.push({label:`Venus in Domicile (${signOf(trans.Venus)})${RX.Venus?' ℞':''}`,pts:p,max:4,rationale:`Classical dignity · ×${vDigMod.toFixed(2)}${RX.Venus?' retrograde suppressed':''}`});}
-    if (vd.label==='Exaltation') {const p=parseFloat((3*vDigMod).toFixed(1));pts+=p;items.push({label:`Venus in Exaltation (${signOf(trans.Venus)})${RX.Venus?' ℞':''}`,pts:p,max:4,rationale:`Classical dignity · ×${vDigMod.toFixed(2)}`});}
-    if (vd.label==='Detriment')  {pts-=3; items.push({label:`Venus in Detriment (${signOf(trans.Venus)})`,pts:-3,max:0,rationale:'Debilitated'});}
-    if (vd.label==='Fall')       {pts-=2; items.push({label:`Venus in Fall (${signOf(trans.Venus)})`,pts:-2,max:0,rationale:'Debilitated'});}
-    if (md.label==='Domicile')   {const p=parseFloat((3*mDigMod).toFixed(1));pts+=p;items.push({label:`Mars in Domicile (${signOf(trans.Mars)})${RX.Mars?' ℞':''}`,pts:p,max:3,rationale:`Classical dignity · ×${mDigMod.toFixed(2)}${RX.Mars?' retrograde suppressed':''}`});}
-    if (md.label==='Exaltation') {const p=parseFloat((2*mDigMod).toFixed(1));pts+=p;items.push({label:`Mars in Exaltation (${signOf(trans.Mars)})${RX.Mars?' ℞':''}`,pts:p,max:3,rationale:`Classical dignity · ×${mDigMod.toFixed(2)}`});}
-    if (md.label==='Detriment')  {pts-=2; items.push({label:`Mars in Detriment (${signOf(trans.Mars)})`,pts:-2,max:0,rationale:'Debilitated'});}
-    if (md.label==='Fall')       {pts-=2; items.push({label:`Mars in Fall (${signOf(trans.Mars)})`,pts:-2,max:0,rationale:'Debilitated'});}
+    if (vd.label==='Domicile')   {const p=r1(3*vDigMod);pts+=p;items.push({label:`Venus in Domicile (${signOf(trans.Venus)})${RX.Venus?' ℞':''}`,pts:p,max:3,isUniversal:true,rationale:`Classical dignity · ×${vDigMod.toFixed(2)}${RX.Venus?' retrograde suppressed':''}`});}
+    if (vd.label==='Exaltation') {const p=r1(2.5*vDigMod);pts+=p;items.push({label:`Venus in Exaltation (${signOf(trans.Venus)})${RX.Venus?' ℞':''}`,pts:p,max:3,isUniversal:true,rationale:`Classical dignity · ×${vDigMod.toFixed(2)}`});}
+    if (vd.label==='Detriment')  {pts-=2.5; items.push({label:`Venus in Detriment (${signOf(trans.Venus)})`,pts:-2.5,max:0,isUniversal:true,rationale:'Debilitated'});}
+    if (vd.label==='Fall')       {pts-=2; items.push({label:`Venus in Fall (${signOf(trans.Venus)})`,pts:-2,max:0,isUniversal:true,rationale:'Debilitated'});}
+    if (md.label==='Domicile')   {const p=r1(2.5*mDigMod);pts+=p;items.push({label:`Mars in Domicile (${signOf(trans.Mars)})${RX.Mars?' ℞':''}`,pts:p,max:2.5,isUniversal:true,rationale:`Classical dignity · ×${mDigMod.toFixed(2)}${RX.Mars?' retrograde suppressed':''}`});}
+    if (md.label==='Exaltation') {const p=r1(2*mDigMod);pts+=p;items.push({label:`Mars in Exaltation (${signOf(trans.Mars)})${RX.Mars?' ℞':''}`,pts:p,max:2.5,isUniversal:true,rationale:`Classical dignity · ×${mDigMod.toFixed(2)}`});}
+    if (md.label==='Detriment')  {pts-=2; items.push({label:`Mars in Detriment (${signOf(trans.Mars)})`,pts:-2,max:0,isUniversal:true,rationale:'Debilitated'});}
+    if (md.label==='Fall')       {pts-=1.5; items.push({label:`Mars in Fall (${signOf(trans.Mars)})`,pts:-1.5,max:0,isUniversal:true,rationale:'Debilitated'});}
+
+    // Venus ⇄ Mars mutual reception in the sky
+    const vSign=signOf(trans.Venus), mSign=signOf(trans.Mars);
+    if (['Aries','Scorpio'].includes(vSign) && ['Taurus','Libra'].includes(mSign)) {
+      pts+=2.5;
+      items.push({label:'Venus ⇄ Mars mutual reception in the sky',pts:2.5,max:2.5,isUniversal:true,
+        rationale:`Venus in ${vSign} while Mars in ${mSign} — each planet guests in the other's home; affection and desire trade keys`});
+    }
 
     for (const [target,lon] of [['Venus',trans.Venus],['Mars',trans.Mars]]) {
-      const a=findAspect(trans.Saturn,lon);
+      const a=aspectBetween('Saturn',trans.Saturn,target,lon);
       if (a&&(a.quality==='tension'||a.quality==='friction')) {
-        const pen=parseFloat((-3*orbFactor(a.orbRatio)*W.saturnPen).toFixed(1));
-        pts+=pen; items.push({label:`Saturn ${a.sym} Transit ${target}`,pts:pen,max:0,rationale:`${a.name}, orb ${a.orb}° · penalty ×${W.saturnPen.toFixed(1)}`});
+        const pen=r1(-2.5*orbFactor(a.orbRatio)*W.saturnPen);
+        pts+=pen; items.push({label:`Saturn ${a.sym} Transit ${target}`,pts:pen,max:0,isUniversal:true,rationale:`${a.name}, orb ${a.orb}° · restraint penalty ×${W.saturnPen.toFixed(1)}`});
       }
     }
-    for (const [tp,tlon] of [['Venus',trans.Venus],['Mars',trans.Mars]]) {
-      const a=findAspect(trans.NorthNode,tlon);
-      if (a&&a.name==='Conjunction') {const v=parseFloat((2*orbFactor(a.orbRatio)).toFixed(1));pts+=v;items.push({label:`North Node ☌ Transit ${tp}`,pts:v,max:2,rationale:`Orb ${a.orb}° — fated quality`});}
+
+    const nv=aspectBetween('Neptune',trans.Neptune,'Venus',trans.Venus);
+    if (nv && ['fusion','harmony','ease'].includes(nv.quality)) {
+      const v=r1(2*qualityWeight(nv,'Neptune','Venus',W)*orbFactor(nv.orbRatio)*W.neptuneBonus);
+      if(v>=0.3){pts+=v;items.push({label:`Neptune ${nv.sym} Transit Venus`,pts:v,max:2,isUniversal:true,rationale:`${nv.name}, orb ${nv.orb}° — glamour and enchantment over the attraction · tone ×${W.neptuneBonus.toFixed(2)}`});}
     }
 
-    const catPts=parseFloat(Math.min(pts,15).toFixed(1)); grandTotal+=catPts;
-    categories.push({name:'V · Sky Conditions & Dignity',points:catPts,maxPoints:15,items});
+    for (const [tp,tlon] of [['Venus',trans.Venus],['Mars',trans.Mars]]) {
+      const a=aspectBetween('NorthNode',trans.NorthNode,tp,tlon);
+      if (a&&a.name==='Conjunction') {const v=r1(1.5*orbFactor(a.orbRatio));pts+=v;items.push({label:`North Node ☌ Transit ${tp}`,pts:v,max:1.5,isUniversal:true,rationale:`Orb ${a.orb}° — fated quality`});}
+    }
+
+    if (RX.Mercury) { pts-=1; items.push({label:'Mercury ℞',pts:-1,max:0,isUniversal:true,rationale:'Signals cross, timing slips — a light tax on the evening'}); }
+
+    const catPts=r1(Math.min(pts,10)); grandTotal+=catPts;
+    categories.push({name:'VI · Sky Conditions & Dignity',points:catPts,maxPoints:10,items});
   }
 
-  // ── CAT 6: Retrograde Flags ──────────────────────────────────
+  // ── CAT 7: Retrograde Flags ──────────────────────────────────
   {
     const items = [];
     const rxPlanets = [
@@ -539,13 +757,13 @@ function scoreDateTime(jd, wN, mN, wLat, wLng) {
       { name:'Mars',    rx:RX.Mars,    effect:'Drive is frustrated or internalized; action delayed or misdirected. Scores ×0.6.' },
       { name:'Jupiter', rx:RX.Jupiter, effect:'Expansion contracts; fortune is less generous. Scores ×0.85.' },
       { name:'Saturn',  rx:RX.Saturn,  effect:'Saturn retrograde eases its restrictions slightly — discipline relaxes. No score change.' },
-      { name:'Mercury', rx:RX.Mercury, effect:'Communication and timing are complicated — not scored, but worth noting.' },
+      { name:'Mercury', rx:RX.Mercury, effect:'Communication and timing are complicated — a −1 tax under Sky Conditions.' },
     ];
     for (const p of rxPlanets) {
       if (p.rx) items.push({ label:`${p.name} ℞`, pts:0, max:0, rationale:p.effect });
     }
     if (!items.length) items.push({ label:'No personal planets retrograde', pts:0, max:0, rationale:'All key planets are direct — energy flows without obstruction.' });
-    categories.push({ name:'VI · Retrograde Conditions', points:0, maxPoints:0, items });
+    categories.push({ name:'VII · Retrograde Conditions', points:0, maxPoints:0, items });
   }
 
   return{total:parseFloat(Math.min(grandTotal,100).toFixed(1)),maxTotal:100,categories,trans,asc_w,rx:RX};
@@ -577,7 +795,11 @@ function computeNatals() {
   const mUtcH = localToUtcH(BIRTH.mHour, BIRTH.mMin, BIRTH.mAmpm, BIRTH.mUtcOffset);
   const wJD = jdn(BIRTH.wYear, BIRTH.wMonth, BIRTH.wDay, wUtcH, BIRTH.wMin);
   const mJD = jdn(BIRTH.mYear, BIRTH.mMonth, BIRTH.mDay, mUtcH, BIRTH.mMin);
-  return { wNatal: computePlanets(wJD), mNatal: computePlanets(mJD) };
+  // Copy before attaching the Ascendant — computePlanets returns cached objects.
+  return {
+    wNatal: { ...computePlanets(wJD), Asc: ascendant(wJD, BIRTH.wLat, BIRTH.wLng) },
+    mNatal: { ...computePlanets(mJD), Asc: ascendant(mJD, BIRTH.mLat, BIRTH.mLng) },
+  };
 }
 
 let { wNatal, mNatal } = computeNatals();
@@ -814,8 +1036,9 @@ function findBest() {
   for (const tc of TONE_COMBOS) {
     TONE.t1=tc.t1; TONE.t2=tc.t2; TONE.t3=tc.t3;
     for (let d=0;d<60;d++) {
+      // Local evening hours 5–9 PM (PDT = UTC−7), converted to UTC for the ephemeris.
       for (let h=17;h<=21;h++) {
-        const jd=BASE+d+h/24;
+        const jd=BASE+d+(h+7)/24;
         const result=scoreDateTime(jd,wNatal,mNatal,BIRTH.wLat,BIRTH.wLng);
         if (result.total>best.total){best=result;best.jd=jd;bestTone={t1:tc.t1,t2:tc.t2,t3:tc.t3};}
       }
@@ -824,6 +1047,14 @@ function findBest() {
   // Pin the global tone to the winning combination so the whole reading
   // (score breakdown, houses, verdict, charts) reflects that peak moment.
   TONE.t1=bestTone.t1; TONE.t2=bestTone.t2; TONE.t3=bestTone.t3;
+  // Refine the winning hour to 10-minute resolution under the winning tone —
+  // the Moon and Ascendant move fast enough for minutes to matter.
+  const centerJD = best.jd;
+  for (let step=-6; step<=6; step++) {
+    const jd = centerJD + step/144;
+    const r = scoreDateTime(jd, wNatal, mNatal, BIRTH.wLat, BIRTH.wLng);
+    if (r.total > best.total) { best = r; best.jd = jd; }
+  }
   best.tone=bestTone;
   return best;
 }
@@ -834,11 +1065,11 @@ function findBest() {
 function jdToDate(jd){const z=Math.floor(jd+0.5),f=jd+0.5-z;let A=z;if(z>=2299161){const a=Math.floor((z-1867216.25)/36524.25);A=z+1+a-Math.floor(a/4);}const B=A+1524,C=Math.floor((B-122.1)/365.25),D=Math.floor(365.25*C),E=Math.floor((B-D)/30.6001);const month=E<14?E-1:E-13;return{day:B-D-Math.floor(30.6001*E),month,year:month>2?C-4716:C-4715,hour:Math.floor(f*24),min:Math.floor(((f*24)%1)*60)};}
 const MONTHS=['','January','February','March','April','May','June','July','August','September','October','November','December'];
 const WEEKDAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-function fmtTime(utcH,m){const h=((utcH-7)+24)%24;return`${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'} PDT`;}
+function fmtTime(localH,m){return`${localH%12||12}:${String(m).padStart(2,'0')} ${localH>=12?'PM':'AM'} PDT`;}
 function formatPos(lon){const d=Math.floor(lon%30),m=Math.floor((lon%1)*60);return`${d}°${m}′ ${SIGNS[Math.floor(lon/30)]}`;}
 function aspColor(q){return{harmony:'#81c784',ease:'#64b5f6',fusion:'#fff176',tension:'#ef9a9a',friction:'#ffb74d',adjustment:'#b0bec5'}[q]||'#c9a84c';}
 function renderAspRow(a){return`<div class="aspect-row"><div class="planet-cell"><div class="planet-name">${a.from}</div><div class="planet-pos">${formatPos(a.fromPos)}</div></div><div class="aspect-glyph"><span style="color:${aspColor(a.quality)}">${a.sym}</span></div><div class="planet-cell"><div class="planet-name">${a.to}</div><div class="planet-pos">${formatPos(a.toPos)}</div></div><div class="orb-badge">${a.orb}°</div></div>`;}
-function renderNatal(p){return`<div class="natal-grid">${['Sun','Moon','Venus','Mars','Jupiter','Saturn','Neptune','NorthNode'].map(k=>`<div class="natal-item"><span class="natal-planet">${k==='NorthNode'?'☊ Node':k}</span><span class="natal-sign">${formatPos(p[k])}</span></div>`).join('')}</div>`;}
+function renderNatal(p){const NAMES={NorthNode:'☊ Node',Lilith:'⚸ Lilith',Asc:'Ascendant'};return`<div class="natal-grid">${['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto','Lilith','NorthNode','Asc'].filter(k=>p[k]!==undefined).map(k=>`<div class="natal-item"><span class="natal-planet">${NAMES[k]||k}</span><span class="natal-sign">${formatPos(p[k])}</span></div>`).join('')}</div>`;}
 function renderScoreBreakdown(result){
   const pct=(result.total/result.maxTotal*100).toFixed(0);
   const C_UNIV='#8d6e63', C_PERS='#c9a84c';
@@ -904,25 +1135,29 @@ makeStars(150);
 function render() {
   const best = findBest();
   const tr = best.trans, bestAsc = best.asc_w;
-  const bd = jdToDate(best.jd);
-  const dow = WEEKDAYS[Math.floor(best.jd+1.5)%7];
+  // Format date & time on the event's local clock (PDT, UTC−7) so evening
+  // hours keep the right calendar date.
+  const jdLocal = best.jd - 7/24;
+  const bd = jdToDate(jdLocal);
+  const dow = WEEKDAYS[Math.floor(jdLocal+1.5)%7];
 
   const transitDisp=[];
-  for (const tp of ['Venus','Mars','Moon','Jupiter']) {
+  for (const tp of ['Venus','Mars','Moon','Jupiter','Pluto','Uranus']) {
     for (const [who,natal,label] of [['w',wNatal,P.w.name],['m',mNatal,P.m.name]]) {
-      for (const np of ['Venus','Mars','Moon','Sun']) {
-        const a=findAspect(tr[tp],natal[np]);
+      for (const np of ['Venus','Mars','Moon','Sun','Asc']) {
+        if (natal[np]===undefined) continue;
+        const a=aspectBetween(tp,tr[tp],np,natal[np]);
         if (a&&['harmony','fusion','ease','tension','friction'].includes(a.quality))
-          transitDisp.push({from:`Transit ${tp}`,to:`${label} natal ${np}`,...a,fromPos:tr[tp],toPos:natal[np]});
+          transitDisp.push({from:`Transit ${tp}`,to:`${label} natal ${np==='Asc'?'Asc':np}`,...a,fromPos:tr[tp],toPos:natal[np]});
       }
     }
   }
   transitDisp.sort((a,b)=>a.orb-b.orb);
 
   const synDisp=[];
-  for (const wp of ['Venus','Mars','Moon','Sun']) {
-    for (const mp of ['Venus','Mars','Moon','Sun']) {
-      const a=findAspect(wNatal[wp],mNatal[mp]);
+  for (const wp of ['Venus','Mars','Moon','Sun','Pluto','Lilith']) {
+    for (const mp of ['Venus','Mars','Moon','Sun','Pluto','Lilith']) {
+      const a=aspectBetween(wp,wNatal[wp],mp,mNatal[mp]);
       if (a) synDisp.push({from:`${P.w.name} ${wp}`,to:`${P.m.name} ${mp}`,...a,fromPos:wNatal[wp],toPos:mNatal[mp]});
     }
   }
@@ -1006,7 +1241,7 @@ ${renderBirthPanel()}
     </div>
   </div>
   ${(()=>{
-    const rxFlags = Object.entries(best.rx||{}).filter(([,v])=>v).map(([k])=>k+'℞');
+    const rxFlags = ['Mercury','Venus','Mars','Jupiter','Saturn'].filter(k=>best.rx&&best.rx[k]).map(k=>k+'℞');
     if (!rxFlags.length) return '';
     return `<div style="margin-top:0.8rem;font-size:0.78rem;font-style:italic;color:#ef9a9a;">
       ${rxFlags.join(' · ')} — retrograde, see score breakdown
@@ -1091,7 +1326,7 @@ ${renderScoreBreakdown(best)}
 <div class="section">
   <div class="section-title">Natal Synastry · ${P.w.name} × ${P.m.name}</div>
   <div style="font-style:italic;font-size:0.88rem;color:rgba(245,240,232,0.38);margin-bottom:1rem">The permanent planetary bonds between their birth positions</div>
-  ${synDisp.filter(showAsp).slice(0,6).map(renderAspRow).join('')}
+  ${synDisp.filter(showAsp).slice(0,8).map(renderAspRow).join('')}
 </div>
 
 <div class="divider">✦ &nbsp; ✦ &nbsp; ✦</div>
@@ -1330,7 +1565,7 @@ function startAllTonesChart() {
     for (var ci = 0; ci < TONE_COMBOS.length; ci++) {
       var best = -1;
       for (var h = 17; h <= 22; h++) {
-        var s = scoreForTone(jd0 + h/24, TONE_COMBOS[ci]);
+        var s = scoreForTone(jd0 + (h+7)/24, TONE_COMBOS[ci]);
         if (s > best) best = s;
       }
       datasets[ci].data.push(parseFloat(best.toFixed(1)));
@@ -1355,10 +1590,8 @@ function startCalChart() {
   if (hs) hs.style.display = 'none';
 
   var synFixed = (function(){
-    var synB=0;
-    var SP=[['Venus','Mars',10],['Mars','Venus',10],['Sun','Moon',6],['Moon','Sun',6],['Venus','Venus',5],['Mars','Mars',4],['Sun','Venus',4],['Venus','Sun',4],['Moon','Venus',3],['Moon','Mars',3]];
-    for(var i=0;i<SP.length;i++){var wl=wNatal[SP[i][0]],ml=mNatal[SP[i][1]],bw=SP[i][2];if(wl===undefined||ml===undefined)continue;var asp=findAspect(wl,ml);if(!asp)continue;var q=(['harmony','fusion','ease'].includes(asp.quality))?1:(asp.quality==='tension'||asp.quality==='friction')?TONE.t3==='tension'?0.5:0:0.5;synB+=bw*q*orbFactor(asp.orbRatio);}
-    return parseFloat(Math.min(synB,20).toFixed(1));
+    var r = natalSynastryItems(wNatal, mNatal, toneWeights());
+    return parseFloat(Math.min(r.pts, 15).toFixed(1));
   })();
 
   function score3(jd){
@@ -1366,7 +1599,7 @@ function startCalChart() {
     var personal=0, sky=0;
     for (var ci=0; ci<res.categories.length; ci++) {
       var cat = res.categories[ci];
-      if (cat.name.indexOf('III ·')===0 || cat.name.indexOf('VI ·')===0) continue;
+      if (cat.name.indexOf('III ·')===0 || cat.name.indexOf('VII ·')===0) continue;
       for (var ii=0; ii<cat.items.length; ii++) {
         var item = cat.items[ii];
         if (item.pts <= 0) {
@@ -1378,7 +1611,7 @@ function startCalChart() {
         }
       }
     }
-    personal = parseFloat(Math.min(Math.max(personal, 0), 65).toFixed(1));
+    personal = parseFloat(Math.min(Math.max(personal, 0), 75).toFixed(1));
     var skyAdj = parseFloat(Math.max(sky, 0).toFixed(1));
     if (sky < 0) { personal = parseFloat(Math.max(personal + sky, 0).toFixed(1)); skyAdj = 0; }
     return{personal:personal, sky:skyAdj, natal:synFixed, total:res.total};
@@ -1436,7 +1669,7 @@ function startCalChart() {
     if(!document.getElementById('calDc')){return;}
     if(calDay>=60){document.getElementById('calMsg').textContent='Click any bar for hourly breakdown · tone: '+toneLabel();return;}
     var jd0=BASE2+calDay,best=null;
-    for(var h=17;h<=22;h++){var s=score3(jd0+h/24);if(!best||s.total>best.total)best=s;}
+    for(var h=17;h<=22;h++){var s=score3(jd0+(h+7)/24);if(!best||s.total>best.total)best=s;}
     cData.labels.push(lbl2(jd0));
     cData.datasets[0].data.push(best.natal);
     cData.datasets[1].data.push(best.sky);
