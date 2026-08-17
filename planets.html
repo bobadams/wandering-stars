@@ -109,6 +109,7 @@
   .scanScore{ font-family:Cinzel,serif; font-weight:600; color:var(--gold); margin-right:.6rem;}
   .scanDate{ font-size:.98rem;}
   .scanPats{ color:var(--ink-dim); font-size:.88rem; margin-top:.1rem;}
+  .scanOver{ color:rgba(126,168,212,.85); white-space:nowrap;}
 
   /* ---- planet chips ---- */
   #chips{ width:min(92vw,600px); display:flex; flex-wrap:wrap; justify-content:center;
@@ -188,7 +189,8 @@
 
 <footer>
   Planetary longitudes from JPL approximate Keplerian elements (best 1800–2050, shown 1600–2400);
-  Moon from a truncated lunar theory, good to ~0.3°. Tropical zodiac, equinox of date, geocentric.
+  Moon from a truncated lunar theory, good to ~0.3° — about an hour of its own motion, which is
+  the real precision of any moment named here. Tropical zodiac, equinox of date, geocentric.
 </footer>
 
 <script>
@@ -302,17 +304,20 @@ function computeAll(ms){
 }
 
 /* ============================== aspect intensity ============================== */
-/* One table serves both the wheel and the analyzer; the quincunx is detected (for
-   yods) but has no color, so it is never drawn. Orbs don't overlap, so a pair
-   matches at most one aspect. */
+/* One table serves both the wheel and the analyzer. Orbs don't overlap, so a pair
+   matches at most one aspect. Every aspect that scores is also drawn: the quincunx
+   used to be scored but left colorless, so roughly a sixteenth of the intensity —
+   its own pairwise share plus every yod built on it — moved with nothing on screen
+   to account for it. */
 const ASPECT_TYPES = [
   { key:'conj', ang:0,   orb:7, w:1.2, color:'212,175,90'  },
   { key:'sext', ang:60,  orb:4, w:0.8, color:'106,196,184' },
   { key:'sq',   ang:90,  orb:6, w:1.0, color:'224,106,79'  },
   { key:'tri',  ang:120, orb:6, w:1.0, color:'126,168,212' },
-  { key:'quin', ang:150, orb:3, w:0.3, color:null           },
+  { key:'quin', ang:150, orb:3, w:0.3, color:'150,120,180' },
   { key:'opp',  ang:180, orb:7, w:1.2, color:'204,82,96'   },
 ];
+const CONJ_ORB = ASPECT_TYPES[0].orb;
 /* luminaries weigh most, slow outer planets least — an outer-planet figure lasts
    months and would otherwise flood a scan, while Sun/Moon configurations are the
    sharp, datable events worth surfacing */
@@ -330,10 +335,43 @@ const C3 = [...combos(BODIES.length, 3)],
       C4 = [...combos(BODIES.length, 4)],
       C6 = [...combos(BODIES.length, 6)];
 
-/* Score = Σ pairwise + Σ figure bonuses. Pairwise: PW[i]·PW[j]·w·tightness², so
-   exact aspects spike. Figures add a bonus scaled by their loosest member aspect;
-   overlapping figures stack, so a kite counts its grand trine too and a sky like
-   a grand sextile piles trines, kites, and rectangles into one huge score. */
+/* Figure bonuses are surprisal rather than taste: 2·(−log₂ f), where f is the fraction of
+   1600–2400 (sampled six-hourly) in which the figure is present. That orders the ladder by
+   rarity as a matter of construction. Hand-set values had it wrong in both directions — the
+   mystic rectangle scored below the grand cross while being commoner, and the t-square, in
+   the sky a third of the time, was the single largest source of bonus points anywhere.
+   Lunations are deliberately off the ladder: the Sun–Moon pair is already priced by the
+   pairwise term, so their bonus is a nameplate, not a claim about rarity. */
+const FIG_BONUS = {
+  'Grand Sextile':30, 'Grand Cross':12.5, 'Mystic Rectangle':12, 'Kite':9.75,
+  'Yod':6.5, 'Grand Trine':6, 'T-Square':3.5, 'Full Moon':2, 'New Moon':1.5,
+};
+const PILE_W = 1.2;                              // per unit of excess crowding, see analyzeSky
+
+/* The raw score is unbounded and its median is only 4.6, so a bare "sky intensity 4.0" said
+   nothing about whether 4.0 was remarkable — and with these orbs a given pair of bodies is in
+   aspect 29% of the time, so a dozen live aspects is the resting state, not an event. These
+   are the quartile, decile and tail cuts of the score over 1600–2400 sampled six-hourly
+   (1.17M skies); re-measure them if the weights or orbs change. */
+const SCORE_BANDS = [
+  [ 3.3, 'a still sky'],                         // below the lower quartile
+  [ 4.6, 'a quiet sky'],
+  [ 6.7, 'an ordinary sky'],
+  [ 9.5, 'a busy sky'],                          // upper decile starts here
+  [18.1, 'in the loudest tenth of skies'],
+  [28.0, 'in the loudest hundredth'],
+  [Infinity, 'rarer than one sky in a thousand'],
+];
+const scoreBand = s => SCORE_BANDS.find(([hi]) => s < hi)[1];
+
+/* Score = Σ pairwise + pile-up crowding + Σ figure bonuses. Pairwise: PW[i]·PW[j]·w·tightness²,
+   so exact aspects spike. Figures add a bonus scaled by their loosest member aspect. Genuinely
+   different figures still stack — a kite counts its grand trine too — but the same figure is
+   no longer billed once per conjunct body standing at one of its vertices.
+   Every term here is continuous in the longitudes. That is a deliberate constraint, not an
+   accident: the score is fed to a peak-finding scan, and each hard membership test that used
+   to be in here (a stellium's member count, a grand cross vetoing its t-squares) put a cliff
+   in the objective, so the scan reported edges of orbs as if they were events. */
 function analyzeSky(lons){
   const n = lons.length;
   const asp = Array.from({length:n}, () => new Array(n).fill(null));
@@ -354,38 +392,36 @@ function analyzeSky(lons){
   }
   const is = (i, j, k) => asp[i][j] !== null && asp[i][j].key === k;
   const minT = pairs => Math.min(...pairs.map(([i, j]) => asp[i][j].tight));
-  const patterns = [];
-  const add = (name, mem, bonus, tight) => {
-    patterns.push({ name, mem, pts: bonus*tight });
-    score += bonus*tight;
-  };
+  const figs = [];
+  const add = (name, mem, tight) => { figs.push({ name, mem, tight, pts: FIG_BONUS[name]*tight }); };
 
-  /* stelliums: 3+ bodies chained by conjunctions */
-  if (cnt.conj >= 2){
-    const p = [...Array(n).keys()];
-    const find = x => p[x] === x ? x : (p[x] = find(p[x]));
-    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++)
-      if (is(i, j, 'conj')) p[find(i)] = find(j);
-    const cl = new Map();
-    for (let i = 0; i < n; i++) cl.set(find(i), (cl.get(find(i)) || []).concat(i));
-    for (const m of cl.values()) if (m.length >= 3){
-      const pairs = [];
-      for (let a = 0; a < m.length; a++) for (let b = a + 1; b < m.length; b++)
-        if (is(m[a], m[b], 'conj')) pairs.push([m[a], m[b]]);
-      add('Stellium', m, 2.5*(m.length - 2), minT(pairs));
+  /* ---- pile-ups ----
+     Each body measures how crowded its own neighbourhood is through a smooth kernel, and the
+     bonus is superlinear in that crowding. There is deliberately no clustering step. The old
+     version ran a union-find over conjunctions and scored 2.5·(members−2)·(loosest link),
+     which failed twice over: a body arriving at the edge of orb pushed the member count up
+     while dragging the loosest link to zero, so the whole pile's score fell off a cliff at
+     the moment the sky got busier (a measured 3.2-point drop inside one minute), and
+     "conjunct" chained transitively into piles 26° wide on a 7° orb. Crowding has no clusters
+     to merge, so it cannot jump, and the kernel is zero past the orb, so it cannot chain. */
+  const crowd = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++)
+    if (is(i, j, 'conj')){
+      const k = asp[i][j].tight*asp[i][j].tight;
+      crowd[i] += k; crowd[j] += k;
     }
-  }
+  for (let i = 0; i < n; i++) score += PILE_W*Math.max(0, crowd[i] - 1);
 
   /* grand trines, and kites hung on their vertices */
   if (cnt.tri >= 3) for (const [i, j, k] of C3){
     if (!(is(i,j,'tri') && is(i,k,'tri') && is(j,k,'tri'))) continue;
     const base = [[i,j],[i,k],[j,k]];
-    add('Grand Trine', [i,j,k], 6, minT(base));
+    add('Grand Trine', [i,j,k], minT(base));
     for (let m = 0; m < n; m++){
       if (m === i || m === j || m === k) continue;
       for (const [v, o1, o2] of [[i,j,k],[j,i,k],[k,i,j]])
         if (is(m,v,'opp') && is(m,o1,'sext') && is(m,o2,'sext'))
-          add('Kite', [o1, o2, v, m], 5, minT(base.concat([[m,v],[m,o1],[m,o2]])));
+          add('Kite', [o1, o2, v, m], minT(base.concat([[m,v],[m,o1],[m,o2]])));
     }
   }
 
@@ -395,23 +431,31 @@ function analyzeSky(lons){
     const pairs = [];
     for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) pairs.push([q[a], q[b]]);
     if (pairs.some(([a, b]) => asp[a][b] === null)) continue;
-    const cnt = {};
-    for (const [a, b] of pairs) cnt[asp[a][b].key] = (cnt[asp[a][b].key] || 0) + 1;
-    if (cnt.opp === 2 && cnt.sq === 4){
-      crossSets.push(q);
-      add('Grand Cross', q, 10, minT(pairs));
-    } else if (cnt.opp === 2 && cnt.sext === 2 && cnt.tri === 2){
-      add('Mystic Rectangle', q, 7, minT(pairs));
+    const kinds = {};                            // quad-local census; do not shadow the sky-wide `cnt`
+    for (const [a, b] of pairs) kinds[asp[a][b].key] = (kinds[asp[a][b].key] || 0) + 1;
+    if (kinds.opp === 2 && kinds.sq === 4){
+      crossSets.push({ q, tight: minT(pairs) });
+      add('Grand Cross', q, minT(pairs));
+    } else if (kinds.opp === 2 && kinds.sext === 2 && kinds.tri === 2){
+      add('Mystic Rectangle', q, minT(pairs));
     }
   }
 
-  /* t-squares, unless the trio is already inside a grand cross */
+  /* t-squares, absorbed by any grand cross that contains them in proportion to how tight that
+     cross is. A boolean exclusion here was the sharpest edge in the whole score: on
+     2020-10-10 two grand crosses barely inside orb, worth 0.01 points apiece, were
+     suppressing five t-squares worth 5.46 between them, so the sky lurched 3.9 points in one
+     minute as the crosses dissolved. Fading the absorption in with the cross removes the
+     edge and still stops a tight cross from being billed as four t-squares as well. */
   if (cnt.opp >= 1 && cnt.sq >= 2) for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){
     if (!is(i, j, 'opp')) continue;
     for (let k = 0; k < n; k++){
       if (k === i || k === j || !is(i,k,'sq') || !is(j,k,'sq')) continue;
-      if (crossSets.some(q => q.includes(i) && q.includes(j) && q.includes(k))) continue;
-      add('T-Square', [i, j, k], 3, minT([[i,j],[i,k],[j,k]]));
+      let absorbed = 0;
+      for (const c of crossSets)
+        if (c.q.includes(i) && c.q.includes(j) && c.q.includes(k) && c.tight > absorbed)
+          absorbed = c.tight;
+      add('T-Square', [i, j, k], minT([[i,j],[i,k],[j,k]])*(1 - absorbed));
     }
   }
 
@@ -420,7 +464,7 @@ function analyzeSky(lons){
     if (!is(i, j, 'sext')) continue;
     for (let k = 0; k < n; k++)
       if (k !== i && k !== j && is(i,k,'quin') && is(j,k,'quin'))
-        add('Yod', [i, j, k], 4, minT([[i,j],[i,k],[j,k]]));
+        add('Yod', [i, j, k], minT([[i,j],[i,k],[j,k]]));
   }
 
   /* grand sextile: six bodies whose longitude-sorted neighbors are all sextile */
@@ -432,12 +476,79 @@ function analyzeSky(lons){
       const A = s6[a], B = s6[(a + 1) % 6];
       if (is(A, B, 'sext')) pairs.push([A, B]); else ok = false;
     }
-    if (ok) add('Grand Sextile', s6, 25, minT(pairs));
+    if (ok) add('Grand Sextile', s6, minT(pairs));
   }
 
   /* lunations (Sun = 0, Moon = 1 in BODIES order) */
-  if (is(0, 1, 'opp'))  add('Full Moon', [0, 1], 2,   asp[0][1].tight);
-  if (is(0, 1, 'conj')) add('New Moon',  [0, 1], 1.5, asp[0][1].tight);
+  if (is(0, 1, 'opp'))  add('Full Moon', [0, 1], asp[0][1].tight);
+  if (is(0, 1, 'conj')) add('New Moon',  [0, 1], asp[0][1].tight);
+
+  /* ---- share out re-counts of one figure ----
+     A pile-up sitting on a vertex used to bill its figure once per member: the sky of
+     2048-05-27 reported four grand crosses, all of them Moon+Uranus+Pluto plus one body
+     drawn from a single four-planet stellium, and 24 of its 39 bonus points were that one
+     cross charged four times.
+     Two instances are "the same figure" to the extent that the bodies swapped between them
+     are conjunct — exactly conjunct means one figure wearing two names, a pair at the edge of
+     orb means two figures that really are distinct. Each instance is divided by how much
+     company it keeps by that measure, so four copies of one cross split a single cross's
+     worth between them while four unrelated crosses each count in full.
+     The sharing is symmetric and reads nothing but tightness, which matters: an earlier
+     version kept the strongest instance whole and discounted the rest, and that put a cliff
+     in the score wherever two instances crossed in rank (a measured 0.36-point step with no
+     aspect changing at all, on 2020-10-16). Weighting each neighbour by its own tightness is
+     what lets a figure appear and vanish without moving anybody else. */
+  const similarity = (f, g) => {
+    const inn = f.mem.filter(m => !g.mem.includes(m));
+    const out = g.mem.filter(m => !f.mem.includes(m));
+    if (inn.length !== out.length) return 0;
+    if (!inn.length) return 1;                     // literally the same figure
+    if (inn.length > 3) return 0;                  // too far apart to be one figure twice
+    const bestMatch = (idx, avail) => {            // max product over pairings of swapped bodies
+      if (idx === inn.length) return 1;
+      let b = 0;
+      for (let z = 0; z < avail.length; z++){
+        if (!is(inn[idx], avail[z], 'conj')) continue;
+        const v = asp[inn[idx]][avail[z]].tight*bestMatch(idx + 1, avail.filter((_, y) => y !== z));
+        if (v > b) b = v;
+      }
+      return b;
+    };
+    return bestMatch(0, out);
+  };
+  for (const f of figs){
+    let company = 0;
+    for (const g of figs){
+      if (g === f || g.name !== f.name || g.mem.length !== f.mem.length) continue;
+      company += similarity(f, g)*g.tight;         // g.tight, never g.pts — keeps this order-free
+    }
+    f.pts /= 1 + company;
+    score += f.pts;
+  }
+
+  /* stellium nameplates: maximal runs whose whole span fits inside the conjunction orb, so
+     the label can never describe a chain wider than the orb it is named for. The crowding
+     term above has already scored these; the points here only rank them for the readout. */
+  const patterns = figs;
+  if (cnt.conj){
+    const order = [...Array(n).keys()].sort((a, b) => lons[a] - lons[b]);
+    const runs = [];
+    for (let s = 0; s < n; s++){
+      const mem = [order[s]];
+      for (let k = 1; k < n && wrap360(lons[order[(s + k) % n]] - lons[order[s]]) <= CONJ_ORB; k++)
+        mem.push(order[(s + k) % n]);
+      if (mem.length >= 3) runs.push(mem);
+    }
+    const seen = new Set();
+    for (const r of runs){
+      if (runs.some(o => o.length > r.length && r.every(b => o.includes(b)))) continue;
+      const key = r.slice().sort((a, b) => a - b).join(',');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      patterns.push({ name:'Stellium', mem:r,
+                      pts: r.reduce((s, b) => s + PILE_W*Math.max(0, crowd[b] - 1), 0) });
+    }
+  }
 
   patterns.sort((a, b) => b.pts - a.pts);
   return { score, patterns };
@@ -681,7 +792,8 @@ const patHTML = p => `${p.name} <span class="glyphs">${p.mem.map(i => BODIES[i].
 function updateAspects(bodies){
   const r = analyzeSky(bodies.map(b => b.lon));
   const pats = r.patterns.slice(0, 4).map(patHTML).join(' · ');
-  aspectLine.innerHTML = `sky intensity <b>${r.score.toFixed(1)}</b>` + (pats ? ' · ' + pats : '');
+  aspectLine.innerHTML = `sky intensity <b>${r.score.toFixed(1)}</b>`
+    + ` · <i>${scoreBand(r.score)}</i>` + (pats ? ' · ' + pats : '');
 }
 
 /* ---- remarkable-skies scanner ---- */
@@ -700,7 +812,7 @@ let lastGraph = null;   // { t0, t1, step, scores, peaks }
 function drawScanGraph(){
   if (!lastGraph){ scanGraphWrap.style.display = 'none'; return; }
   scanGraphWrap.style.display = 'block';
-  const { t0, t1, step, scores, peaks } = lastGraph;
+  const { t0, t1, step, scores, baseline, peaks } = lastGraph;
   /* the wrap has just flipped from display:none; if layout hasn't settled its
      width can read 0, so fall back to the panel width and retry next frame */
   let cw = scanGraphWrap.getBoundingClientRect().width;
@@ -720,6 +832,7 @@ function drawScanGraph(){
   const plotW = cw - 2*padX, plotH = ch - padT - padB, baseY = ch - padB;
   let hi = 0;
   for (let i = 0; i < scores.length; i++) if (scores[i] > hi) hi = scores[i];
+  for (const p of peaks) if (p.score > hi) hi = p.score;   // refined peaks outrun the coarse grid
   hi = Math.max(hi, 1);
   const X = t => padX + plotW*(t - t0)/(t1 - t0);
   const Y = s => baseY - plotH*s/hi;
@@ -768,6 +881,20 @@ function drawScanGraph(){
   gctx.lineWidth = 1.2;
   gctx.stroke();
 
+  /* the era backdrop the peaks were ranked against */
+  if (baseline){
+    gctx.beginPath();
+    for (let i = 0; i < baseline.length; i++){
+      const x = X(t0 + i*step), y = Y(baseline[i]);
+      i ? gctx.lineTo(x, y) : gctx.moveTo(x, y);
+    }
+    gctx.strokeStyle = 'rgba(126,168,212,0.55)';
+    gctx.lineWidth = 1;
+    gctx.setLineDash([3, 3]);
+    gctx.stroke();
+    gctx.setLineDash([]);
+  }
+
   /* marker for each peak that made the list */
   for (const p of peaks){
     const x = X(p.t), y = Y(p.score);
@@ -807,10 +934,12 @@ function renderScan(results){
     row.className = 'scanRow';
     const d = new Date(r.t);
     const pats = r.patterns.slice(0, 5).map(patHTML).join(' · ');
+    const over = r.base === undefined ? '' :
+      ` <span class="scanOver">+${(r.score - r.base).toFixed(1)} over its era</span>`;
     row.innerHTML =
       `<span class="scanScore">${r.score.toFixed(1)}</span>` +
       `<span class="scanDate">${fmtDate.format(d)} · ${fmtTime.format(d)}</span>` +
-      `<div class="scanPats">${pats || 'a chorus of close aspects, no named figure'}</div>`;
+      `<div class="scanPats">${pats || 'a chorus of close aspects, no named figure'}${over}</div>`;
     row.addEventListener('click', () => { target = clampT(r.t); });
     scanList.appendChild(row);
   }
@@ -833,33 +962,67 @@ btnScan.addEventListener('click', () => {
     scanStatus.textContent = `reading the sky… ${Math.round(100*i/(N + 1))}%`;
     if (i <= N){ setTimeout(chunk, 0); return; }
 
-    /* local maxima → keep the best, at least 5 days apart → refine to 10 min */
+    /* The outer planets hold one aspect for years at a time — Neptune and Pluto are inside
+       some orb more than half of any century — so they raise a slow frame under everything,
+       and every lunar peak riding that frame outscores a sharper sky in a leaner decade.
+       Ranking on the excess over the local peak envelope rather than raw height spreads the
+       results out: over 2001–2051 it lifts the list from 11 distinct years to 13 and stops
+       any one year holding more than two entries, while still keeping the highest sky in the
+       range. The envelope has to be built from block maxima — a running mean of the raw score
+       is useless here, because the bulk sits near 5 everywhere and swamps the era effect
+       (it moves over 4.5–7.1, where the envelope swings 13.0–24.9). */
+    const BLK = Math.max(1, Math.round(30*DAY/STEP));
+    const NB = Math.ceil((N + 1)/BLK);
+    const bmax = new Float64Array(NB);
+    for (let b = 0; b < NB; b++){
+      let m = 0;
+      for (let s = b*BLK, e = Math.min(N + 1, (b + 1)*BLK); s < e; s++) if (scores[s] > m) m = scores[s];
+      bmax[b] = m;
+    }
+    const bpre = new Float64Array(NB + 1);
+    for (let b = 0; b < NB; b++) bpre[b + 1] = bpre[b] + bmax[b];
+    const BW = Math.max(1, Math.min(12, Math.floor(NB/4)));   // ~±1 year of blocks
+    const baseline = new Float32Array(N + 1);
+    for (let s = 0; s <= N; s++){
+      const b = Math.floor(s/BLK), lo = Math.max(0, b - BW), hi = Math.min(NB - 1, b + BW);
+      baseline[s] = (bpre[hi + 1] - bpre[lo])/(hi - lo + 1);
+    }
+
+    /* local maxima, refined before ranking — the coarse grid can undersell a peak whose
+       sample lands off-centre, so refine generously first, then rank and space out */
     const peaks = [];
     for (let s = 1; s < N; s++)
       if (scores[s] > scores[s - 1] && scores[s] >= scores[s + 1])
-        peaks.push({ t: t0 + s*STEP, score: scores[s] });
-    peaks.sort((a, b) => b.score - a.score);
-    const kept = [];
-    for (const p of peaks){
-      if (kept.some(q => Math.abs(q.t - p.t) < 5*DAY)) continue;
-      kept.push(p);
-      if (kept.length === 16) break;
-    }
-    const results = kept.map(p => {
-      let bt = p.t, bs = -1;
+        peaks.push({ t: t0 + s*STEP, score: scores[s], base: baseline[s] });
+    peaks.sort((a, b) => (b.score - b.base) - (a.score - a.base));
+    const QH = 15*60000;                           // the lunar theory is good to ~0.3°, which is
+    const refined = peaks.slice(0, 64).map(p => {  // ~an hour of Moon travel: don't pretend to
+      let bt = p.t, bs = -1;                       // more than quarter-hour precision
       for (let t = p.t - STEP; t <= p.t + STEP; t += 10*60000){
         const s = analyzeSky(lonsArrayAt(t)).score;
         if (s > bs){ bs = s; bt = t; }
       }
-      return { t: bt, ...analyzeSky(lonsArrayAt(bt)) };
-    }).sort((a, b) => b.score - a.score);
+      bt = clampT(Math.round(bt/QH)*QH);
+      return { t: bt, base: p.base, ...analyzeSky(lonsArrayAt(bt)) };
+    }).sort((a, b) => (b.score - b.base) - (a.score - a.base));
 
-    lastGraph = { t0, t1, step: STEP, scores, peaks: results };
+    const results = [];
+    for (const p of refined){
+      if (results.some(q => Math.abs(q.t - p.t) < 5*DAY)) continue;
+      results.push(p);
+      if (results.length === 16) break;
+    }
+    results.sort((a, b) => b.score - a.score);     // selected on excess, listed by intensity
+
+    lastGraph = { t0, t1, step: STEP, scores, baseline, peaks: results };
     drawScanGraph();
     renderScan(results);
     const y = t => new Date(t).getFullYear();
-    scanStatus.textContent = results.length
+    const shaky = y(t0) < 1800 || y(t1) > 2050;
+    scanStatus.innerHTML = results.length
       ? `the ${results.length} most remarkable skies of ${y(t0)}–${y(t1)} — click one to travel there`
+        + `<br><span style="opacity:.75">each stands out from its own decade; times are good to about an hour`
+        + (shaky ? ', and the orbital elements are extrapolated beyond 1800–2050' : '') + '</span>'
       : 'nothing notable found in this range';
     btnScan.disabled = false;
   })();
